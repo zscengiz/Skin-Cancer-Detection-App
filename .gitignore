@@ -1,0 +1,96 @@
+# macOS system files
+.DS_Store
+
+# VS Code settings folder
+.vscode/
+
+# JetBrains IDEs (PyCharm, IntelliJ, WebStorm, etc.)
+.idea/
+
+# Log files and temporary system files
+*.log
+*.tmp
+*.swp
+
+# Python bytecode/cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python virtual environments
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables and secrets
+.env
+.env.*
+*.env
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Coverage & testing
+htmlcov/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Type checking tools
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints
+
+# Dart & Flutter tool directories
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+.melos_tool/
+
+# Flutter build outputs
+build/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+android/.gradle
+android/app/build/
+
+# Pub cache
+.pub-cache/
+.pub/
+
+# Generated files
+generated_plugin_registrant.dart
+
+# Android Studio
+.gradle/
+local.properties
+
+# Xcode
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Runner.xcworkspace/
+xcuserdata/
+
+# Flutter web
+web/.dart_tool/
+
+# Misc
+*.iml
