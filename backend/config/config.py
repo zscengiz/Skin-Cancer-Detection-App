@@ -1,7 +1,6 @@
 from dotenv import load_dotenv, find_dotenv
-from internal.utils.logger import logger
+from backend.internal.utils.logger import logger 
 from decouple import config
-from typing import Optional
 import sys
 
 dotenv_path = find_dotenv()
@@ -25,10 +24,21 @@ if conf["mongodb_user"] and conf["mongodb_pass"]:
 else:
     conf["mongodb_uri"] = f'mongodb://{conf["mongodb_host"]}/{conf["mongodb_database"]}'
 
-def get_config(name: str):
+conf["secret_key"] = config("SECRET_KEY", default="super-secret-key")
+conf["algorithm"] = config("ALGORITHM", default="HS256")
+conf["access_token_expire_minutes"] = int(config("ACCESS_TOKEN_EXPIRE_MINUTES", default=15))
+conf["refresh_token_expire_days"] = int(config("REFRESH_TOKEN_EXPIRE_DAYS", default=7))
+
+conf["smtp_host"] = config("SMTP_HOST", default="")
+conf["smtp_port"] = config("SMTP_PORT", default=587)
+conf["smtp_user"] = config("SMTP_USER", default="")
+conf["smtp_pass"] = config("SMTP_PASS", default="")
+
+
+def get_config(name: str, default=None):
     if name == "all":
         return conf
-    return conf.get(name)
+    return conf.get(name, default)
 
 def set_config(name: str, value):
     conf[name] = value

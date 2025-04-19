@@ -11,6 +11,7 @@
 *.log
 *.tmp
 *.swp
+logs
 
 # Python bytecode/cache
 __pycache__/
