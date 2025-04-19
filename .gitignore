@@ -93,4 +93,9 @@ xcuserdata/
 web/.dart_tool/
 
 # Misc
-*.iml
+*.log
+*.tmp
+*.swp
+.ipynb_checkpoints
+
+
