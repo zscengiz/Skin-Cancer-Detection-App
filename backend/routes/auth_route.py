@@ -13,14 +13,14 @@ async def request_password_reset(request: Request, email: EmailStr = Body(...)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    reset_token = await generate_code()  
+    reset_token = await generate_code()
     await save_verification_code(email, reset_token)
-    reset_link = f"{request.base_url}reset-password?token={reset_token}"
 
-    reset_link = f"{request.base_url}reset-password?token={reset_token}"
-    await send_email(email, "Password Reset", f"Click to reset your password: {reset_link}")
-    
+    reset_link = f"http://localhost:8000/reset-password.html?token={reset_token}&email={email}"
+    await send_email(email, "Password Reset", f"Click the link to reset your password:\n\n{reset_link}")
+
     return {"message": "Password reset link sent to your email."}
+
 
 
 
