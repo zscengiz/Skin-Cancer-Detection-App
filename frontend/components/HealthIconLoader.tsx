@@ -2,12 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 import images from '../constants/images';
 
+const healthIcons = [
+  images.heart,
+  images.stethoscope,
+  images.pill,
+  images.hospital,
+];
+
 const HealthIconLoader = () => {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIndex((prev) => (prev + 1) % images.healthIcons.length);
+      setIndex((prev) => (prev + 1) % healthIcons.length);
     }, 800);
 
     return () => clearInterval(interval);
@@ -15,7 +22,7 @@ const HealthIconLoader = () => {
 
   return (
     <View style={styles.container}>
-      <Image source={images.healthIcons[index]} style={styles.icon} />
+      <Image source={healthIcons[index]} style={styles.icon} />
     </View>
   );
 };
