@@ -38,7 +38,7 @@ async def register(response: Response, form: UserRegister):
     hashed_pw = bcrypt.hashpw(form.password.encode(), bcrypt.gensalt()).decode()
     await create_user({
         "email": form.email,
-        "hashed_password": hashed_pw,  # ✅ DÜZELTME BURADA
+        "hashed_password": hashed_pw, 
         "is_active": True
     })
 

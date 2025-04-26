@@ -15,7 +15,7 @@ const WelcomeScreen = () => {
       <Text style={styles.title}>Let's get started</Text>
       <Text style={styles.subtitle}>We are happy to see you again</Text>
 
-      <TouchableOpacity style={styles.emailButton} onPress={() => router.push('../../app/screens/auth/LoginScreen')}>
+      <TouchableOpacity style={styles.emailButton} onPress={() => router.push('/screens/auth/LoginScreen')}>
         <Text style={styles.emailButtonText}>Sign in with Email</Text>
       </TouchableOpacity>
 
@@ -25,7 +25,7 @@ const WelcomeScreen = () => {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Don't have an account?</Text>
-        <TouchableOpacity onPress={() => router.push('../../app/screens/auth/SignUpScreen')}>
+        <TouchableOpacity onPress={() => router.push('/screens/auth/SignUpScreen')}>
           <Text style={styles.footerLink}> Sign up</Text>
         </TouchableOpacity>
       </View>

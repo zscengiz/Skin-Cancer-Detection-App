@@ -22,8 +22,6 @@ async def request_password_reset(request: Request, email: EmailStr = Body(...)):
     return {"message": "Password reset link sent to your email."}
 
 
-
-
 @router.post("/reset-password")
 async def reset_password(email: EmailStr = Body(...), token: str = Body(...), new_password: str = Body(...)):
     if not await verify_code(email, token):
