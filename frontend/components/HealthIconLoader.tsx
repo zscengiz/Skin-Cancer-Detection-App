@@ -5,8 +5,8 @@ import images from '../constants/images';
 const healthIcons = [
   images.heart,
   images.stethoscope,
-  images.pill,
-  images.hospital,
+  images.skinProtection,
+  images.technology,
 ];
 
 const HealthIconLoader = () => {

@@ -2,9 +2,10 @@ const images = {
   doctor: require('../assets/images/doctor.png'),
   heart: require('../assets/images/heart.png'),
   stethoscope: require('../assets/images/stethoscope.png'),
-  pill: require('../assets/images/pill.png'),
-  hospital: require('../assets/images/hospital.png'),
-  adaptiveIcon: require('../assets/images/adaptive-icon.png')
+  skinProtection: require('../assets/images/skinProtection.png'),
+  technology: require('../assets/images/technology.png'),
+  adaptiveIcon: require('../assets/images/adaptive-icon.png'),
+  safety: require('../assets/images/safety.png'),
 };
 
 export default images;

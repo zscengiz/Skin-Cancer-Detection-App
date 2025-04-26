@@ -10,41 +10,42 @@ const { width, height } = Dimensions.get('window');
 const slides = [
   {
     id: '1',
-    title: 'Track Your Health',
-    description: 'Monitor your health regularly and stay fit.',
+    title: 'Skin Health Matters',
+    description: 'Regularly check your skin to detect early signs of skin cancer.',
     image: images.doctor,
   },
   {
     id: '2',
-    title: 'Early Diagnosis Saves Lives',
-    description: 'Detect early signs and prevent major issues.',
+    title: 'Spot the Danger Early',
+    description: 'Early detection of abnormal moles can save lives.',
     image: images.heart,
   },
   {
     id: '3',
-    title: 'Easy and Secure Usage',
-    description: 'Your data is safe and the app is easy to use.',
-    image: images.hospital,
+    title: 'AI-Powered Skin Analysis',
+    description: 'Get quick and reliable analysis of suspicious skin lesions.',
+    image: images.technology,
   },
   {
     id: '4',
-    title: 'Skin Cancer Detection',
-    description: 'Identify risky skin lesions early with AI-powered analysis.',
+    title: 'Preventive Care',
+    description: 'Understand risk factors and take action before it\'s too late.',
     image: images.stethoscope,
   },
   {
     id: '5',
-    title: 'Smart Health Management',
-    description: 'Take control with smart insights and personal tips.',
-    image: images.pill,
+    title: 'Track Your Skin Changes',
+    description: 'Monitor the evolution of moles and spots with ease.',
+    image: images.skinProtection,
   },
   {
     id: '6',
-    title: 'Your Data is Protected',
-    description: 'Privacy and security are our top priorities.',
-    image: images.hospital,
+    title: 'Your Health, Our Priority',
+    description: 'We ensure your data is safe while helping you stay healthy.',
+    image: images.safety,
   },
 ];
+
 
 const OnboardingScreen = () => {
   const router = useRouter();
