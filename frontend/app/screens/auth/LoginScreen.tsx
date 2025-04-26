@@ -25,16 +25,8 @@ const LoginScreen = () => {
     }
   };
 
-  const handleForgotPassword = async () => {
-    setIsLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      alert('Şifre sıfırlama bağlantısı e-postanıza gönderildi.');
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
+  const navigateToForgotPassword = () => {
+    router.push('/screens/auth/ForgotPasswordScreen');
   };
 
   if (isLoading) {
@@ -80,7 +72,7 @@ const LoginScreen = () => {
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={handleForgotPassword}>
+      <TouchableOpacity onPress={navigateToForgotPassword}>
         <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
       </TouchableOpacity>
     </View>
