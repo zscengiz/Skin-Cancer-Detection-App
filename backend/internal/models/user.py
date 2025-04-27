@@ -1,15 +1,13 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr
 
-
-class UserRegister(BaseModel):
+class UserSignUp(BaseModel):
     email: EmailStr
     password: str
 
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
-class UserOut(BaseModel):
+class UserResponse(BaseModel):
     id: str
     email: EmailStr
-
-
-class UserInDB(UserOut):
-    hashed_password: str

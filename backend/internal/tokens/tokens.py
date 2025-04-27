@@ -1,6 +1,6 @@
 from jwt import encode
 from datetime import datetime, timedelta
-from config import conf
+from backend.config.config import conf
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()

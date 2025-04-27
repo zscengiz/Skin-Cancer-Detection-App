@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import colors from '../../../constants/colors';
 import fonts from '../../../constants/fonts/fonts';
-import { Ionicons } from '@expo/vector-icons';
+import apiService from '../../../services/ApiService';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -14,12 +15,19 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields.');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      router.push('/screens/HomeScreen');
-    } catch (error) {
-      console.error(error);
+      await apiService.login({ email, password });
+      Alert.alert('Success', 'Logged in successfully!', [
+        { text: 'OK', onPress: () => router.replace('/screens/HomeScreen') }
+      ]);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Login failed.');
     } finally {
       setIsLoading(false);
     }
@@ -48,6 +56,7 @@ const LoginScreen = () => {
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
+        autoCapitalize="none"
       />
 
       <View style={styles.passwordContainer}>
@@ -60,11 +69,7 @@ const LoginScreen = () => {
           secureTextEntry={!showPassword}
         />
         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-          <Ionicons
-            name={showPassword ? 'eye-off' : 'eye'}
-            size={24}
-            color={colors.textSecondary}
-          />
+          <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
 

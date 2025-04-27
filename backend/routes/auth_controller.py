@@ -1,72 +1,64 @@
-import bcrypt
-import jwt
-from fastapi import APIRouter, HTTPException, Response, status, Body
+from fastapi import APIRouter, HTTPException, Body, status
 from pydantic import EmailStr
-from backend.config.config import get_config
-from backend.internal.database.database import get_user_by_email, create_user
-from backend.internal.utils.logger import logger
-from datetime import datetime, timedelta
-from typing import Optional
-from pydantic import BaseModel
+from backend.internal.database.database import get_user_by_email, user_collection
+from backend.internal.models.user import UserSignUp, UserLogin, UserResponse
+from backend.internal.email.verification_code import generate_code, save_verification_code, verify_code
+from backend.internal.email.mailer import send_email
+from backend.internal.tokens.tokens import create_access_token, create_refresh_token
+import bcrypt
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-SECRET_KEY = get_config("secret_key")
-ALGORITHM = get_config("algorithm")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(get_config("access_token_expire_minutes", 15))
-REFRESH_TOKEN_EXPIRE_DAYS = int(get_config("refresh_token_expire_days", 7))
+@router.post("/signup", response_model=UserResponse)
+async def signup(user: UserSignUp):
+    existing_user = await get_user_by_email(user.email)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
 
-
-def create_token(data: dict, expires_delta: timedelta):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + expires_delta
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
-class UserRegister(BaseModel):
-    email: EmailStr
-    password: str
-
-
-@router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(response: Response, form: UserRegister):
-    user = await get_user_by_email(form.email)
-    if user:
-        raise HTTPException(status_code=400, detail="Email already registered.")
-
-    hashed_pw = bcrypt.hashpw(form.password.encode(), bcrypt.gensalt()).decode()
-    await create_user({
-        "email": form.email,
-        "hashed_password": hashed_pw, 
-        "is_active": True
-    })
-
-    access_token = create_token({"email": form.email}, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    refresh_token = create_token({"email": form.email}, timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
-
-    response.set_cookie("access_token", access_token, httponly=True)
-    response.set_cookie("refresh_token", refresh_token, httponly=True)
-
-    return {"message": "User registered", "access_token": access_token, "refresh_token": refresh_token}
-
+    hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    user_data = {
+        "email": user.email,
+        "hashed_password": hashed_password,
+    }
+    result = await user_collection.insert_one(user_data)
+    user_data["id"] = str(result.inserted_id)
+    return UserResponse(**user_data)
 
 @router.post("/login")
-async def login(response: Response, email: EmailStr = Body(...), password: str = Body(...)):
+async def login(user: UserLogin):
+    existing_user = await get_user_by_email(user.email)
+    if not existing_user or not bcrypt.checkpw(user.password.encode('utf-8'), existing_user["hashed_password"].encode('utf-8')):
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+
+    access_token = create_access_token(data={"sub": user.email})
+    refresh_token = create_refresh_token(data={"sub": user.email})
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+@router.post("/request-password-reset")
+async def request_password_reset(email: EmailStr = Body(...)):
     user = await get_user_by_email(email)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    if not user or "hashed_password" not in user:
-        raise HTTPException(status_code=401, detail="Invalid credentials.")
+    reset_token = await generate_code()
+    await save_verification_code(email, reset_token)
 
-    if not bcrypt.checkpw(password.encode(), user["hashed_password"].encode()):
-        raise HTTPException(status_code=401, detail="Invalid credentials.")
+    reset_link = f"http://localhost:8000/reset-password.html?token={reset_token}&email={email}"
+    await send_email(email, "Password Reset", f"Click the link to reset your password:\n\n{reset_link}")
 
-    access_token = create_token({"email": user["email"]}, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    refresh_token = create_token({"email": user["email"]}, timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
+    return {"message": "Password reset link sent to your email."}
 
-    response.set_cookie("access_token", access_token, httponly=True)
-    response.set_cookie("refresh_token", refresh_token, httponly=True)
+@router.post("/reset-password")
+async def reset_password(email: EmailStr = Body(...), token: str = Body(...), new_password: str = Body(...)):
+    if not await verify_code(email, token):
+        raise HTTPException(status_code=400, detail="Invalid or expired token.")
 
-    logger.info(f"User logged in: {email}")
-
-    return {"message": "Login successful", "access_token": access_token, "refresh_token": refresh_token}
+    hashed_pw = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    await user_collection.update_one({"email": email}, {"$set": {"hashed_password": hashed_pw}})
+    
+    return {"message": "Password has been reset successfully."}

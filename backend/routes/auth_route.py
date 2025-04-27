@@ -1,11 +1,24 @@
-from fastapi import APIRouter, Request, HTTPException, Body, status
+from fastapi import APIRouter, Depends, HTTPException, Body, Request, status
 from pydantic import EmailStr
 from backend.internal.email.verification_code import generate_code, save_verification_code, verify_code
 from backend.internal.email.mailer import send_email
 from backend.internal.database.database import get_user_by_email, user_collection
+from backend.internal.models.user import UserSignUp, UserLogin
+from backend.internal.tokens.tokens import create_access_token, create_refresh_token
+from backend.internal.utils.utils import verify_password
+import backend.routes.auth_controller as auth_controller
+from backend.internal.models.user import UserSignUp, UserLogin, UserResponse
 import bcrypt
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter(tags=["Auth"])
+
+@router.post("/signup")
+async def signup(user: UserSignUp):
+    return await auth_controller.signup(user)
+
+@router.post("/login")
+async def login(user: UserLogin):
+    return await auth_controller.login(user)
 
 @router.post("/request-password-reset")
 async def request_password_reset(request: Request, email: EmailStr = Body(...)):
@@ -20,7 +33,6 @@ async def request_password_reset(request: Request, email: EmailStr = Body(...)):
     await send_email(email, "Password Reset", f"Click the link to reset your password:\n\n{reset_link}")
 
     return {"message": "Password reset link sent to your email."}
-
 
 @router.post("/reset-password")
 async def reset_password(email: EmailStr = Body(...), token: str = Body(...), new_password: str = Body(...)):
