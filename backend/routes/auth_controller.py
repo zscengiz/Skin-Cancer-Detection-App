@@ -13,6 +13,7 @@ from backend.internal.models.refresh_token import RefreshToken
 from datetime import datetime, timedelta
 from backend.config.config import conf
 from backend.internal.tokens.dependencies import get_current_user
+import backend.routes.auth_controller as auth_controller
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -107,3 +108,41 @@ async def reset_password(email: EmailStr = Body(...), token: str = Body(...), ne
 @router.get("/protected-route")
 async def protected_route(current_user: dict = Depends(get_current_user)):
     return {"message": f"Hello {current_user['email']}!"}
+
+@router.post("/refresh-token")
+async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
+
+    refresh_token_data = await refresh_token_collection.find_one({"token": refresh_token})
+
+    if not refresh_token_data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    now = datetime.utcnow()
+    expires_at = refresh_token_data["expires_at"]
+
+    if now > expires_at:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token expired",
+        )
+
+    user_id = refresh_token_data["user_id"]
+
+    new_access_token = create_access_token(data={"sub": user_id, "user_id": user_id})
+
+    access_token_obj = AccessToken(
+        token=new_access_token,
+        user_id=user_id,
+        created_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(minutes=conf["access_token_expire_minutes"]),
+        is_active=True
+    )
+    await access_token_collection.insert_one(access_token_obj.dict())
+
+    return {
+        "access_token": new_access_token,
+        "token_type": "bearer"
+    }

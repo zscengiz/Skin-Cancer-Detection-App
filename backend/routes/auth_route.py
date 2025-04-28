@@ -48,3 +48,7 @@ async def reset_password(email: EmailStr = Body(...), token: str = Body(...), ne
 @router.get("/protected-route")
 async def protected_route(current_user: dict = Depends(get_current_user)):
     return {"message": f"Hello {current_user['email']}!"}
+
+@router.post("/refresh-token")
+async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
+    return await auth_controller.refresh_access_token(refresh_token)
