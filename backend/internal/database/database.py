@@ -8,12 +8,15 @@ mongodb_name = get_config("mongodb_database")
 
 client = AsyncIOMotorClient(mongodb_uri)
 db = client[mongodb_name]
+
 user_collection = db.users
+access_token_collection = db.access_tokens
+refresh_token_collection = db.refresh_tokens
 
 async def get_user_by_email(email: str) -> Optional[dict]:
     user_data = await user_collection.find_one({"email": email})
     if user_data:
-        user_data["id"] = str(user_data["_id"])  # ObjectId'den string'e
+        user_data["id"] = str(user_data["_id"]) 
         return user_data
     return None
 
