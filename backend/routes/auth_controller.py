@@ -6,6 +6,7 @@ from backend.internal.email.verification_code import generate_code, save_verific
 from backend.internal.email.mailer import send_email
 from backend.internal.tokens.tokens import create_access_token, create_refresh_token
 import bcrypt
+import uuid
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -17,33 +18,22 @@ async def signup(user: UserSignUp):
 
     hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+    user_id = str(uuid.uuid4())
+
     user_data = {
+        "id": user_id,
         "name": user.name,
         "surname": user.surname,
         "email": user.email,
         "hashed_password": hashed_password,
     }
-    result = await user_collection.insert_one(user_data)
+
+    await user_collection.insert_one(user_data)
 
     return UserResponse(
-        id=str(result.inserted_id),
+        id=user_id,
         email=user.email
     )
-
-@router.post("/login")
-async def login(user: UserLogin):
-    existing_user = await get_user_by_email(user.email)
-    if not existing_user or not bcrypt.checkpw(user.password.encode('utf-8'), existing_user["hashed_password"].encode('utf-8')):
-        raise HTTPException(status_code=400, detail="Invalid credentials")
-
-    access_token = create_access_token(data={"sub": user.email})
-    refresh_token = create_refresh_token(data={"sub": user.email})
-
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer"
-    }
 
 @router.post("/request-password-reset")
 async def request_password_reset(email: EmailStr = Body(...)):
