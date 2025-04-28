@@ -5,6 +5,7 @@ from backend.internal.models.user import UserSignUp, UserLogin, UserResponse
 from backend.internal.email.verification_code import generate_code, save_verification_code, verify_code
 from backend.internal.email.mailer import send_email
 from backend.internal.tokens.tokens import create_access_token, create_refresh_token
+from backend.internal.utils.response import success_response
 import bcrypt
 import uuid
 from backend.internal.database.database import access_token_collection, refresh_token_collection
@@ -13,18 +14,16 @@ from backend.internal.models.refresh_token import RefreshToken
 from datetime import datetime, timedelta
 from backend.config.config import conf
 from backend.internal.tokens.dependencies import get_current_user
-import backend.routes.auth_controller as auth_controller
 
 router = APIRouter(tags=["Auth"])
 
-@router.post("/signup", response_model=UserResponse)
+@router.post("/signup")
 async def signup(user: UserSignUp):
     existing_user = await get_user_by_email(user.email)
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
     hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
     user_id = str(uuid.uuid4())
 
     user_data = {
@@ -34,12 +33,11 @@ async def signup(user: UserSignUp):
         "email": user.email,
         "hashed_password": hashed_password,
     }
-
     await user_collection.insert_one(user_data)
 
-    return UserResponse(
-        id=user_id,
-        email=user.email
+    return success_response(
+        message="Signup successful",
+        data={"id": user_id, "email": user.email}
     )
 
 @router.post("/login")
@@ -52,7 +50,6 @@ async def login(user: UserLogin):
         "sub": user.email,
         "user_id": existing_user["id"]
     })
-
     refresh_token = create_refresh_token(data={
         "sub": user.email,
         "user_id": existing_user["id"]
@@ -71,15 +68,19 @@ async def login(user: UserLogin):
         token=refresh_token,
         user_id=existing_user["id"],
         created_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(days=conf["refresh_token_expire_days"])
+        expires_at=datetime.utcnow() + timedelta(days=conf["refresh_token_expire_days"]),
+        is_active=True
     )
     await refresh_token_collection.insert_one(refresh_token_obj.dict())
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer"
-    }
+    return success_response(
+        message="Login successful",
+        data={
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
+    )
 
 @router.post("/request-password-reset")
 async def request_password_reset(email: EmailStr = Body(...)):
@@ -93,7 +94,7 @@ async def request_password_reset(email: EmailStr = Body(...)):
     reset_link = f"http://localhost:8000/reset-password.html?token={reset_token}&email={email}"
     await send_email(email, "Password Reset", f"Click the link to reset your password:\n\n{reset_link}")
 
-    return {"message": "Password reset link sent to your email."}
+    return success_response(message="Password reset link sent to your email.")
 
 @router.post("/reset-password")
 async def reset_password(email: EmailStr = Body(...), token: str = Body(...), new_password: str = Body(...)):
@@ -103,11 +104,11 @@ async def reset_password(email: EmailStr = Body(...), token: str = Body(...), ne
     hashed_pw = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     await user_collection.update_one({"email": email}, {"$set": {"hashed_password": hashed_pw}})
     
-    return {"message": "Password has been reset successfully."}
+    return success_response(message="Password has been reset successfully.")
 
 @router.get("/protected-route")
 async def protected_route(current_user: dict = Depends(get_current_user)):
-    return {"message": f"Hello {current_user['email']}!"}
+    return success_response(message=f"Hello {current_user['email']}!")
 
 @router.post("/refresh-token")
 async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
@@ -153,11 +154,14 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
     )
     await refresh_token_collection.insert_one(refresh_token_obj.dict())
 
-    return {
-        "access_token": new_access_token,
-        "refresh_token": new_refresh_token,
-        "token_type": "bearer"
-    }
+    return success_response(
+        message="Token refreshed successfully",
+        data={
+            "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
+            "token_type": "bearer"
+        }
+    )
 
 @router.post("/logout")
 async def logout(
@@ -168,10 +172,9 @@ async def logout(
         {"token": access_token},
         {"$set": {"is_active": False}}
     )
-
     await refresh_token_collection.update_one(
         {"token": refresh_token},
         {"$set": {"is_active": False}}
     )
 
-    return {"message": "Successfully logged out."}
+    return success_response(message="Successfully logged out.")
