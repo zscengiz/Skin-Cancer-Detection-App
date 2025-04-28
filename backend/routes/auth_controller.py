@@ -15,7 +15,7 @@ from backend.config.config import conf
 from backend.internal.tokens.dependencies import get_current_user
 import backend.routes.auth_controller as auth_controller
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter(tags=["Auth"])
 
 @router.post("/signup", response_model=UserResponse)
 async def signup(user: UserSignUp):
