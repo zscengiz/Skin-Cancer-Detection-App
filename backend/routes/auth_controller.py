@@ -158,3 +158,20 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
         "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
+
+@router.post("/logout")
+async def logout(
+    access_token: str = Body(..., embed=True),
+    refresh_token: str = Body(..., embed=True)
+):
+    await access_token_collection.update_one(
+        {"token": access_token},
+        {"$set": {"is_active": False}}
+    )
+
+    await refresh_token_collection.update_one(
+        {"token": refresh_token},
+        {"$set": {"is_active": False}}
+    )
+
+    return {"message": "Successfully logged out."}
