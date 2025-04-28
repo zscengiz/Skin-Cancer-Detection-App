@@ -111,27 +111,29 @@ async def protected_route(current_user: dict = Depends(get_current_user)):
 
 @router.post("/refresh-token")
 async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
-
     refresh_token_data = await refresh_token_collection.find_one({"token": refresh_token})
 
     if not refresh_token_data:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token",
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
     now = datetime.utcnow()
     expires_at = refresh_token_data["expires_at"]
 
     if now > expires_at:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token expired",
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
+
+    if not refresh_token_data.get("is_active", True):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive refresh token")
 
     user_id = refresh_token_data["user_id"]
 
+    await refresh_token_collection.update_one(
+        {"token": refresh_token},
+        {"$set": {"is_active": False}}
+    )
+
     new_access_token = create_access_token(data={"sub": user_id, "user_id": user_id})
+    new_refresh_token = create_refresh_token(data={"sub": user_id, "user_id": user_id})
 
     access_token_obj = AccessToken(
         token=new_access_token,
@@ -142,7 +144,17 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
     )
     await access_token_collection.insert_one(access_token_obj.dict())
 
+    refresh_token_obj = RefreshToken(
+        token=new_refresh_token,
+        user_id=user_id,
+        created_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(days=conf["refresh_token_expire_days"]),
+        is_active=True
+    )
+    await refresh_token_collection.insert_one(refresh_token_obj.dict())
+
     return {
         "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
         "token_type": "bearer"
     }
