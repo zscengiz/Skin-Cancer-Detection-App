@@ -7,6 +7,11 @@ from backend.internal.email.mailer import send_email
 from backend.internal.tokens.tokens import create_access_token, create_refresh_token
 import bcrypt
 import uuid
+from backend.internal.database.database import access_token_collection, refresh_token_collection
+from backend.internal.models.access_token import AccessToken
+from backend.internal.models.refresh_token import RefreshToken
+from datetime import datetime, timedelta
+from backend.config.config import conf
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
@@ -50,6 +55,23 @@ async def login(user: UserLogin):
         "sub": user.email,
         "user_id": existing_user["id"]
     })
+
+    access_token_obj = AccessToken(
+        token=access_token,
+        user_id=existing_user["id"],
+        created_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(minutes=conf["access_token_expire_minutes"]),
+        is_active=True
+    )
+    await access_token_collection.insert_one(access_token_obj.dict())
+
+    refresh_token_obj = RefreshToken(
+        token=refresh_token,
+        user_id=existing_user["id"],
+        created_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(days=conf["refresh_token_expire_days"])
+    )
+    await refresh_token_collection.insert_one(refresh_token_obj.dict())
 
     return {
         "access_token": access_token,
