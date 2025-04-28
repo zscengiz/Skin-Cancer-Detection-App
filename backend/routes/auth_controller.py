@@ -16,13 +16,19 @@ async def signup(user: UserSignUp):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
     user_data = {
+        "name": user.name,
+        "surname": user.surname,
         "email": user.email,
         "hashed_password": hashed_password,
     }
     result = await user_collection.insert_one(user_data)
-    user_data["id"] = str(result.inserted_id)
-    return UserResponse(**user_data)
+
+    return UserResponse(
+        id=str(result.inserted_id),
+        email=user.email
+    )
 
 @router.post("/login")
 async def login(user: UserLogin):
