@@ -9,6 +9,7 @@ from backend.internal.utils.utils import verify_password
 import backend.routes.auth_controller as auth_controller
 from backend.internal.models.user import UserSignUp, UserLogin, UserResponse
 import bcrypt
+from backend.internal.tokens.dependencies import get_current_user
 
 router = APIRouter(tags=["Auth"])
 
@@ -43,3 +44,7 @@ async def reset_password(email: EmailStr = Body(...), token: str = Body(...), ne
     await user_collection.update_one({"email": email}, {"$set": {"hashed_password": hashed_pw}})
     
     return {"message": "Password has been reset successfully."}
+
+@router.get("/protected-route")
+async def protected_route(current_user: dict = Depends(get_current_user)):
+    return {"message": f"Hello {current_user['email']}!"}
