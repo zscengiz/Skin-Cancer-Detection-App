@@ -51,3 +51,5 @@ class UserLogin(BaseModel):
 class UserResponse(BaseModel):
     id: str
     email: EmailStr
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import colors from '../../../constants/colors';
 import fonts from '../../../constants/fonts/fonts';
-import { Ionicons } from '@expo/vector-icons';
+import apiService from '../../../services/ApiService';
+import Toast from 'react-native-toast-message';
 
 const SignUpScreen = () => {
   const router = useRouter();
@@ -22,7 +24,6 @@ const SignUpScreen = () => {
 
   const validateInputs = () => {
     let isValid = true;
-
     const nameSurnameRegex = /^[a-zA-ZğüşöçıİĞÜŞÖÇ\s]+$/;
 
     if (!name.trim() || name.length < 3) {
@@ -98,16 +99,46 @@ const SignUpScreen = () => {
 
   const handleSignUp = async () => {
     if (!validateInputs()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Validation Error',
+        text2: 'Please fix the errors before proceeding.',
+        position: 'top',
+        visibilityTime: 3000,
+      });
       return;
     }
 
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      alert('Signup Successful!');
-      router.push('/screens/WelcomeScreen');
-    } catch (error) {
-      console.error(error);
+      const response = await apiService.register({ name, surname, email, password });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: response?.message || 'Signup Successful!',
+        position: 'top',
+        visibilityTime: 3000,
+      });
+
+      setTimeout(() => {
+        router.replace('/screens/auth/LoginScreen');
+      }, 1000);
+    } catch (error: any) {
+      console.error('Signup Error:', error);
+
+      const errorMessage =
+        error?.response?.data?.error?.message ||
+        error?.message ||
+        'Signup failed. Please try again.';
+
+      Toast.show({
+        type: 'error',
+        text1: 'Signup Error',
+        text2: errorMessage,
+        position: 'top',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -150,6 +181,7 @@ const SignUpScreen = () => {
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
+        autoCapitalize="none"
       />
       {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
@@ -163,11 +195,7 @@ const SignUpScreen = () => {
           secureTextEntry={!showPassword}
         />
         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-          <Ionicons
-            name={showPassword ? 'eye-off' : 'eye'}
-            size={24}
-            color={colors.textSecondary}
-          />
+          <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color={colors.textSecondary} />
         </TouchableOpacity>
       </View>
       {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}

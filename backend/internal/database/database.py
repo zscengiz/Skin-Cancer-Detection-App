@@ -6,7 +6,11 @@ from typing import Optional
 mongodb_uri = get_config("mongodb_uri")
 mongodb_name = get_config("mongodb_database")
 
-client = AsyncIOMotorClient(mongodb_uri)
+client = AsyncIOMotorClient(
+    mongodb_uri,
+    tls=True,
+    tlsAllowInvalidCertificates=True
+)
 db = client[mongodb_name]
 
 user_collection = db.users

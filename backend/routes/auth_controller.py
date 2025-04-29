@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Body, status, Depends
 from pydantic import EmailStr
 from backend.internal.database.database import get_user_by_email, user_collection
-from backend.internal.models.user import UserSignUp, UserLogin, UserResponse
+from backend.internal.models.user import UserSignUp, UserLogin, UserResponse, ForgotPasswordRequest
 from backend.internal.email.verification_code import generate_code, save_verification_code, verify_code
 from backend.internal.email.mailer import send_email
 from backend.internal.tokens.tokens import create_access_token, create_refresh_token
@@ -83,7 +83,8 @@ async def login(user: UserLogin):
     )
 
 @router.post("/request-password-reset")
-async def request_password_reset(email: EmailStr = Body(...)):
+async def request_password_reset(request: ForgotPasswordRequest):
+    email = request.email
     user = await get_user_by_email(email)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

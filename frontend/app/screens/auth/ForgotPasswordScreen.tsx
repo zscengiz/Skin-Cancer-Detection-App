@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import colors from '../../../constants/colors';
 import fonts from '../../../constants/fonts/fonts';
+import apiService from '../../../services/ApiService';
+import Toast from 'react-native-toast-message';
 
 const ForgotPasswordScreen = () => {
   const router = useRouter();
-
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,27 +32,34 @@ const ForgotPasswordScreen = () => {
     setIsLoading(true);
 
     try {
-      // TODO: Burada backend'e POST /forgot-password isteği atılacak
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await apiService.forgotPassword({ email });
 
-      if (email.toLowerCase() !== 'test@example.com') {
-        setEmailError('Email not found.');
-      } else {
-        Alert.alert(
-          'Success',
-          'Password reset link sent to your email.',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.push('/screens/WelcomeScreen'),
-            },
-          ],
-          { cancelable: false }
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      setEmailError('An unexpected error occurred.');
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Password reset link sent to your email.',
+        position: 'top',
+        visibilityTime: 3000,
+      });
+
+      setTimeout(() => {
+        router.replace('/screens/WelcomeScreen');
+      }, 1000);
+    } catch (error: any) {
+      console.error('Forgot Password Error:', error);
+
+      const errorMessage =
+        error?.response?.data?.error?.message ||
+        error?.message ||
+        'Failed to send reset link. Please try again.';
+
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: errorMessage,
+        position: 'top',
+        visibilityTime: 3000,
+      });
     } finally {
       setIsLoading(false);
     }
