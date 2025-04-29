@@ -35,7 +35,18 @@ class ApiService {
     );
 
     this.axiosInstance.interceptors.response.use(
-      (response: AxiosResponse<any>) => response.data,
+      (response: AxiosResponse<any>) => {
+        const res = response.data;
+        if (res.success === false) {
+          return Promise.reject({
+            message: res.error?.message || 'Unknown error',
+            error_code: res.error?.error_code || 'UNKNOWN_ERROR',
+            path: res.error?.path,
+            status: response.status
+          });
+        }
+        return res.data;
+      },
       async (error: AxiosError) => {
         const originalRequest = error.config as any;
 
@@ -67,6 +78,7 @@ class ApiService {
         return Promise.reject(error);
       }
     );
+
   }
 
   private async refreshAccessToken(refreshToken: string) {
