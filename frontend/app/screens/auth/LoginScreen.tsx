@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../../constants/colors';
 import fonts from '../../../constants/fonts/fonts';
 import apiService from '../../../services/ApiService';
 import Toast from 'react-native-toast-message';
+import LoadingScreen from '../LoadingScreen';
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -17,13 +18,7 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: 'Please fill in all fields.',
-        position: 'top',
-        visibilityTime: 3000,
-      });
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Please fill in all fields.', position: 'top', visibilityTime: 3000 });
       return;
     }
 
@@ -31,32 +26,24 @@ const LoginScreen = () => {
     try {
       await apiService.login({ email, password });
 
-      Toast.show({
-        type: 'success',
-        text1: 'Success',
-        text2: 'Logged in successfully!',
-        position: 'top',
-        visibilityTime: 3000,
-      });
+      Toast.show({ type: 'success', text1: 'Success', text2: 'Logged in successfully!', position: 'top', visibilityTime: 3000 });
 
       setTimeout(() => {
         router.replace('/screens/HomeScreen');
       }, 1000);
     } catch (error: any) {
-      console.error('Login Error:', error);
-
       const errorMessage =
-        error?.message ||
-        error?.response?.data?.error?.message ||
-        'Login failed. Please check your credentials.';
-
+        typeof error === 'string' ? error :
+          error?.message ||
+          error?.response?.data?.error?.message || 'Login failed. Please try again.';
       Toast.show({
         type: 'error',
-        text1: 'Login Error',
+        text1: 'Signup Error',
         text2: errorMessage,
         position: 'top',
         visibilityTime: 3000,
       });
+
     } finally {
       setIsLoading(false);
     }
@@ -67,11 +54,7 @@ const LoginScreen = () => {
   };
 
   if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   return (

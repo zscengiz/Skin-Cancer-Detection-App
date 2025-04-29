@@ -15,34 +15,40 @@ const HealthIconLoader = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setIndex((prev) => (prev + 1) % healthIcons.length);
-    }, 800);
-
+    }, 400);
     return () => clearInterval(interval);
   }, []);
 
   return (
     <View style={styles.container}>
-      <Image source={healthIcons[index]} style={styles.icon} />
+      <View style={styles.iconContainer}>
+        <Image source={healthIcons[index]} style={styles.icon} />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
     backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 10,
+    elevation: 8,
     shadowColor: 'black',
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
   },
   icon: {
-    width: 60,
-    height: 60,
+    width: 70,
+    height: 70,
     resizeMode: 'contain',
   },
 });

@@ -157,30 +157,32 @@ class ApiService {
 
   private handleApiError(error: AxiosError) {
     if (!error.response) {
-      console.error('Network Error:', error.message);
+      if (__DEV__) console.error('Network Error:', error.message);
       return;
     }
 
     const { status } = error.response;
 
-    switch (status) {
-      case 400:
-        console.error('Bad Request:', error.response.data);
-        break;
-      case 401:
-        console.warn('Unauthorized access.');
-        break;
-      case 403:
-        console.error('Forbidden:', error.response.data);
-        break;
-      case 404:
-        console.error('Not Found:', error.response.data);
-        break;
-      case 500:
-        console.error('Server Error:', error.response.data);
-        break;
-      default:
-        console.error('Unhandled API Error:', error.response.data);
+    if (__DEV__) {
+      switch (status) {
+        case 400:
+          console.error('Bad Request:', error.response.data);
+          break;
+        case 401:
+          console.warn('Unauthorized access.');
+          break;
+        case 403:
+          console.error('Forbidden:', error.response.data);
+          break;
+        case 404:
+          console.error('Not Found:', error.response.data);
+          break;
+        case 500:
+          console.error('Server Error:', error.response.data);
+          break;
+        default:
+          console.error('Unhandled API Error:', error.response.data);
+      }
     }
   }
 }

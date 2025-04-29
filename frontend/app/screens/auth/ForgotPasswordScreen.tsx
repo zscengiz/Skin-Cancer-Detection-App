@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import colors from '../../../constants/colors';
 import fonts from '../../../constants/fonts/fonts';
 import apiService from '../../../services/ApiService';
 import Toast from 'react-native-toast-message';
+import LoadingScreen from '../LoadingScreen';
 
 const ForgotPasswordScreen = () => {
   const router = useRouter();
@@ -23,14 +24,12 @@ const ForgotPasswordScreen = () => {
       setEmailError('Please enter your email.');
       return;
     }
-
     if (!validateEmail(email)) {
       setEmailError('Invalid email format.');
       return;
     }
 
     setIsLoading(true);
-
     try {
       await apiService.forgotPassword({ email });
 
@@ -46,37 +45,30 @@ const ForgotPasswordScreen = () => {
         router.replace('/screens/WelcomeScreen');
       }, 1000);
     } catch (error: any) {
-      console.error('Forgot Password Error:', error);
-
       const errorMessage =
-        error?.response?.data?.error?.message ||
-        error?.message ||
-        'Failed to send reset link. Please try again.';
-
+        typeof error === 'string' ? error :
+          error?.message ||
+          error?.response?.data?.error?.message || 'Failed to send reset link.';
       Toast.show({
         type: 'error',
-        text1: 'Error',
+        text1: 'Signup Error',
         text2: errorMessage,
         position: 'top',
         visibilityTime: 3000,
       });
+
     } finally {
       setIsLoading(false);
     }
   };
 
   if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Forgot Password</Text>
-
       <TextInput
         placeholder="Enter your email"
         placeholderTextColor={colors.textSecondary}
@@ -94,6 +86,7 @@ const ForgotPasswordScreen = () => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

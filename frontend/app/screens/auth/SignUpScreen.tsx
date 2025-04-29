@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../../constants/colors';
 import fonts from '../../../constants/fonts/fonts';
 import apiService from '../../../services/ApiService';
 import Toast from 'react-native-toast-message';
+import LoadingScreen from '../LoadingScreen';
 
 const SignUpScreen = () => {
   const router = useRouter();
@@ -125,13 +126,10 @@ const SignUpScreen = () => {
         router.replace('/screens/auth/LoginScreen');
       }, 1000);
     } catch (error: any) {
-      console.error('Signup Error:', error);
-
       const errorMessage =
-        error?.response?.data?.error?.message ||
-        error?.message ||
-        'Signup failed. Please try again.';
-
+        typeof error === 'string' ? error :
+          error?.message ||
+          error?.response?.data?.error?.message || 'Signup failed.';
       Toast.show({
         type: 'error',
         text1: 'Signup Error',
@@ -145,11 +143,7 @@ const SignUpScreen = () => {
   };
 
   if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   return (
