@@ -3,4 +3,5 @@ const fonts = {
   bold: 'Poppins-Bold',
 };
 
+
 export default fonts;

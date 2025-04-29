@@ -6,4 +6,5 @@ const colors = {
   textSecondary: "#6B7280",
 };
 
+
 export default colors;
