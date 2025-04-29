@@ -13,9 +13,17 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     )
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for err in exc.errors():
+        errors.append({
+            "loc": err.get("loc"),
+            "msg": err.get("msg"),
+            "type": err.get("type")
+        })
+
     return JSONResponse(
         status_code=422,
-        content=create_api_error(request, "Validation Error", ErrorCodes.VALIDATION_ERROR, details=exc.errors())
+        content=create_api_error(request, "Validation Error", ErrorCodes.VALIDATION_ERROR, details=errors)
     )
 
 async def generic_exception_handler(request: Request, exc: Exception):
