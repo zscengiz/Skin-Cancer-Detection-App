@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend.internal.exception.handler import (
     http_exception_handler,
@@ -31,3 +32,5 @@ app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Skin Cancer Detection App!"}
+
+app.mount("/", StaticFiles(directory="backend/static", html=True), name="static")
