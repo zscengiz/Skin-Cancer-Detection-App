@@ -1,19 +1,18 @@
 from fastapi import APIRouter, HTTPException, Body, status, Depends
 from pydantic import EmailStr
-from backend.internal.database.database import get_user_by_email, user_collection
-from backend.internal.models.user import UserSignUp, UserLogin, UserResponse, ForgotPasswordRequest
+from backend.internal.database.database import get_user_by_email, user_collection, access_token_collection, refresh_token_collection
+from backend.internal.models.user import UserSignUp, UserLogin, ForgotPasswordRequest
+from backend.internal.models.access_token import AccessToken
+from backend.internal.models.refresh_token import RefreshToken
 from backend.internal.email.verification_code import generate_code, save_verification_code, verify_code
 from backend.internal.email.mailer import send_email
 from backend.internal.tokens.tokens import create_access_token, create_refresh_token
+from backend.internal.tokens.dependencies import get_current_user
 from backend.internal.utils.response import success_response
+from backend.config.config import conf
 import bcrypt
 import uuid
-from backend.internal.database.database import access_token_collection, refresh_token_collection
-from backend.internal.models.access_token import AccessToken
-from backend.internal.models.refresh_token import RefreshToken
-from datetime import datetime, timedelta
-from backend.config.config import conf
-from backend.internal.tokens.dependencies import get_current_user
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(tags=["Auth"])
 
@@ -46,11 +45,13 @@ async def login(user: UserLogin):
     if not existing_user or not bcrypt.checkpw(user.password.encode('utf-8'), existing_user["hashed_password"].encode('utf-8')):
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    access_token = create_access_token(data={
+    access_token = create_access_token({
         "sub": user.email,
-        "user_id": existing_user["id"]
+        "user_id": existing_user["id"],
+        "name": existing_user["name"]
     })
-    refresh_token = create_refresh_token(data={
+
+    refresh_token = create_refresh_token({
         "sub": user.email,
         "user_id": existing_user["id"]
     })
@@ -58,8 +59,8 @@ async def login(user: UserLogin):
     access_token_obj = AccessToken(
         token=access_token,
         user_id=existing_user["id"],
-        created_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(minutes=conf["access_token_expire_minutes"]),
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=conf["access_token_expire_minutes"]),
         is_active=True
     )
     await access_token_collection.insert_one(access_token_obj.dict())
@@ -67,8 +68,8 @@ async def login(user: UserLogin):
     refresh_token_obj = RefreshToken(
         token=refresh_token,
         user_id=existing_user["id"],
-        created_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(days=conf["refresh_token_expire_days"]),
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=conf["refresh_token_expire_days"]),
         is_active=True
     )
     await refresh_token_collection.insert_one(refresh_token_obj.dict())
@@ -118,7 +119,7 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
     if not refresh_token_data:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expires_at = refresh_token_data["expires_at"]
 
     if now > expires_at:
@@ -134,14 +135,26 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
         {"$set": {"is_active": False}}
     )
 
-    new_access_token = create_access_token(data={"sub": user_id, "user_id": user_id})
-    new_refresh_token = create_refresh_token(data={"sub": user_id, "user_id": user_id})
+    user = await user_collection.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    new_access_token = create_access_token({
+        "sub": user["email"],
+        "user_id": user_id,
+        "name": user["name"]
+    })
+
+    new_refresh_token = create_refresh_token({
+        "sub": user["email"],
+        "user_id": user_id
+    })
 
     access_token_obj = AccessToken(
         token=new_access_token,
         user_id=user_id,
-        created_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(minutes=conf["access_token_expire_minutes"]),
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=conf["access_token_expire_minutes"]),
         is_active=True
     )
     await access_token_collection.insert_one(access_token_obj.dict())
@@ -149,8 +162,8 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
     refresh_token_obj = RefreshToken(
         token=new_refresh_token,
         user_id=user_id,
-        created_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(days=conf["refresh_token_expire_days"]),
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=conf["refresh_token_expire_days"]),
         is_active=True
     )
     await refresh_token_collection.insert_one(refresh_token_obj.dict())
