@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import HealthIconLoader from '../../components/HealthIconLoader';
-import colors from '../../constants/colors';
+import colors from '../../constants/Colors';
 
 const LoadingScreen = () => {
   return (

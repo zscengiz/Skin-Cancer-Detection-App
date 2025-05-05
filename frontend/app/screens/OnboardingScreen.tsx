@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Dimensions, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import colors from '../../constants/colors';
+import colors from '../../constants/Colors';
 import fonts from '../../constants/fonts/fonts';
 import images from '../../constants/images';
 

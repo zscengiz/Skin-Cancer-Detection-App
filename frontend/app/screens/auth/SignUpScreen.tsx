@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import colors from '../../../constants/colors';
+import colors from '../../../constants/Colors';
 import fonts from '../../../constants/fonts/fonts';
 import apiService from '../../../services/ApiService';
 import Toast from 'react-native-toast-message';
@@ -127,9 +127,10 @@ const SignUpScreen = () => {
       }, 1000);
     } catch (error: any) {
       const errorMessage =
-        typeof error === 'string' ? error :
-          error?.message ||
-          error?.response?.data?.error?.message || 'Signup failed.';
+        error?.response?.data?.error?.message ||
+        error?.message ||
+        (typeof error === 'string' ? error : 'Signup failed.');
+
       Toast.show({
         type: 'error',
         text1: 'Signup Error',

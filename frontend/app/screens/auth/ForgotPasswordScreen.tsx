@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import colors from '../../../constants/colors';
+import colors from '../../../constants/Colors';
 import fonts from '../../../constants/fonts/fonts';
 import apiService from '../../../services/ApiService';
 import Toast from 'react-native-toast-message';
@@ -46,17 +46,17 @@ const ForgotPasswordScreen = () => {
       }, 1000);
     } catch (error: any) {
       const errorMessage =
-        typeof error === 'string' ? error :
-          error?.message ||
-          error?.response?.data?.error?.message || 'Failed to send reset link.';
+        error?.response?.data?.error?.message ||
+        error?.message ||
+        (typeof error === 'string' ? error : 'Failed to send reset link.');
+
       Toast.show({
         type: 'error',
-        text1: 'Signup Error',
+        text1: 'Reset Error',
         text2: errorMessage,
         position: 'top',
         visibilityTime: 3000,
       });
-
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +86,6 @@ const ForgotPasswordScreen = () => {
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {

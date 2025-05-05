@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image, BackHandler } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
-import colors from '../../constants/colors';
+import colors from '../../constants/Colors';
 import fonts from '../../constants/fonts/fonts';
 import images from '../../constants/images';
 
