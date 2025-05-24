@@ -56,4 +56,6 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     print("🚨 Validation Error:")
-    print("Rout
+    print("Route:", request.url)
+    print("Body:", await request.body())
+    print("Errors:", exc.errors())
