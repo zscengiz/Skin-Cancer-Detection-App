@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+SQLAlchemy
+asyncpg
+psycopg2-binary
+python-dotenv
+pydantic
+python-multipart
+esdk-obs-python
+Pillow
+motor
+pymongo
+aiosmtplib
+PyJWT
+python-decouple
+pydantic[email]
+bcrypt

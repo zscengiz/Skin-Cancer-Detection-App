@@ -1,0 +1,1031 @@
+diff --git a/.gitignore b/.gitignore
+index cda5e9f..241c9e2 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,24 +1,28 @@
++# ------------------------------
+ # macOS system files
+ .DS_Store
+ 
+-# VS Code settings folder
++# ------------------------------
++# IDE Configurations
+ .vscode/
+-
+-# JetBrains IDEs (PyCharm, IntelliJ, WebStorm, etc.)
+ .idea/
++*.iml
+ 
+-# Log files and temporary system files
++# ------------------------------
++# Log & Temp Files
+ *.log
+ *.tmp
+ *.swp
+-logs
++logs/
++*.bak
+ 
+-# Python bytecode/cache
++# ------------------------------
++# Python Bytecode & Caches
+ __pycache__/
+ *.py[cod]
+ *$py.class
+ 
+-# Python virtual environments
++# Python Virtual Environments
+ env/
+ venv/
+ .venv/
+@@ -26,78 +30,118 @@ ENV/
+ env.bak/
+ venv.bak/
+ 
+-# Environment variables and secrets
++# Jupyter Notebook
++.ipynb_checkpoints/
++
++# ------------------------------
++# Environment & Secrets
+ .env
+ .env.*
+ *.env
+ 
+-# Build artifacts
+-build/
+-dist/
+-*.egg-info/
+-.installed.cfg
+-*.egg
+-
+-# Coverage & testing
+-htmlcov/
++# ------------------------------
++# Coverage & Testing
+ .coverage
+ .coverage.*
+ .cache
+-.pytest_cache/
+-nosetests.xml
+-coverage.xml
++.nosetests*
++htmlcov/
+ *.cover
+-
+-# Type checking tools
++.pytest_cache/
++.tox/
+ .mypy_cache/
+-.dmypy.json
+-dmypy.json
+-.pyre/
+ .pytype/
++.pyre/
++.dmypy.json
+ 
+-# Jupyter notebook checkpoints
+-.ipynb_checkpoints
++# ------------------------------
++# Python Packaging
++build/
++dist/
++*.egg-info/
++*.egg
++.installed.cfg
+ 
+-# Dart & Flutter tool directories
++# ------------------------------
++# Flutter & Dart
+ .dart_tool/
+ .packages
+ .flutter-plugins
+ .flutter-plugins-dependencies
++.metadata
+ .melos_tool/
+-
+-# Flutter build outputs
++pubspec.lock
+ build/
+-ios/Flutter/Flutter.framework
+-ios/Flutter/Flutter.podspec
+-android/.gradle
+-android/app/build/
+ 
+-# Pub cache
+-.pub-cache/
+-.pub/
+-
+-# Generated files
++# Flutter Generated Files
+ generated_plugin_registrant.dart
+ 
+-# Android Studio
+-.gradle/
+-local.properties
+-
+-# Xcode
++# Flutter Web
++web/.dart_tool/
++web/build/
++
++# ------------------------------
++# Android
++android/.gradle/
++android/.idea/
++android/local.properties
++android/gradle.properties
++android/app/build/
++frontend/android/.gradle/
++frontend/android/.idea/
++frontend/android/build/
++frontend/android/local.properties
++frontend/android/frontend_android.iml
++
++# ------------------------------
++# iOS
+ ios/Pods/
+ ios/.symlinks/
+ ios/Flutter/ephemeral/
++ios/Flutter/Flutter.framework
++ios/Flutter/Flutter.podspec
+ ios/Runner.xcworkspace/
+ xcuserdata/
+-
+-# Flutter web
+-web/.dart_tool/
+-
+-# Misc
+-*.log
+-*.tmp
++DerivedData/
++frontend/ios/Flutter/Generated*.xcconfig
++frontend/ios/Flutter/flutter_export_environment*.sh
++frontend/ios/Runner.xcworkspace/
++frontend/ios/Runner.xcodeproj/
++frontend/ios/Pods/
++
++# ------------------------------
++# Node.js (for native modules or tools)
++node_modules/
++SkinCancerDetectionNative/node_modules/
++SkinCancerDetectionNative/
++
++# ------------------------------
++# ML/AI Checkpoints
++*.pt
++*.h5
++*.onnx
++*.ckpt
++backend/models/best.pt
++backend/temp/
++**/checkpoints/
++
++# ------------------------------
++# Asset Cache & Build Artifacts
++*.lock
++*.bak
++*.zip
++*.tar.gz
++*.rar
++
++# ------------------------------
++# Other OS/System files
++Thumbs.db
++ehthumbs.db
++Desktop.ini
++
++# ------------------------------
++# Editor swap files
++*.swo
+ *.swp
+-.ipynb_checkpoints
+ 
+-backend/models/best.pt
+-*.pt
++SkinCancerDetectionNative/
+diff --git a/backend/routes/detection.py b/backend/routes/detection.py
+index a03d1a3..a970bdd 100644
+--- a/backend/routes/detection.py
++++ b/backend/routes/detection.py
+@@ -7,13 +7,13 @@ import os
+ 
+ router = APIRouter()
+ 
+-# Klasörü oluştur
++# Geçici klasörü oluştur
+ os.makedirs("temp", exist_ok=True)
+ 
+-# Model yükle
++# Eğitimli YOLO modelini yükle
+ model = YOLO("models/best.pt")
+ 
+-# Sınıf bilgileri
++# Sınıf etiketlerinin detaylı açıklamaları
+ CLASS_DETAILS = {
+     'MEL': {
+         'full_label': 'Melanoma',
+@@ -52,26 +52,34 @@ CLASS_DETAILS = {
+     }
+ }
+ 
+-
+ @router.post("/detect")
+ async def detect_lesion(file: UploadFile = File(...)):
++    """
++    Uploaded image üzerinden cilt lezyonlarını tespit eder.
++    YOLOv8 modelinden çıkan kutular ve sınıf bilgileri ile detaylı analiz döner.
++    """
++    # Geçici dosya olarak kaydet
+     temp_path = Path(f"temp/{uuid.uuid4()}.jpg")
+     with open(temp_path, "wb") as buffer:
+         shutil.copyfileobj(file.file, buffer)
+ 
++    # Tahmin yap
+     results = model(temp_path, imgsz=640)
+     boxes = results[0].boxes
+     class_names = model.names
+ 
+     predictions = []
++
++    # Sonuçları işle
+     for box in boxes:
+         cls_id = int(box.cls[0].item())
+         label = class_names[cls_id]
++        confidence = round(box.conf[0].item(), 2)
+         details = CLASS_DETAILS.get(label, {})
+ 
+         predictions.append({
+             "class": label,
+-            "confidence": round(box.conf[0].item(), 2),
++            "confidence": confidence,
+             "full_label": details.get("full_label", label),
+             "risk_level": details.get("risk_level", "Unknown"),
+             "advice": details.get("advice", "No advice available.")
+diff --git a/frontend/.gitignore b/frontend/.gitignore
+index 79c113f..d96d42f 100644
+--- a/frontend/.gitignore
++++ b/frontend/.gitignore
+@@ -1,45 +1,145 @@
+-# Miscellaneous
+-*.class
+-*.log
+-*.pyc
+-*.swp
++# ------------------------------
++# macOS system files
+ .DS_Store
+-.atom/
+-.build/
+-.buildlog/
+-.history
+-.svn/
+-.swiftpm/
+-migrate_working_dir/
+-
+-# IntelliJ related
+-*.iml
+-*.ipr
+-*.iws
++
++# ------------------------------
++# IDE Configurations
++.vscode/
+ .idea/
++*.iml
++
++# ------------------------------
++# Log & Temp Files
++*.log
++*.tmp
++*.swp
++logs/
++*.bak
++
++# ------------------------------
++# Python Bytecode & Caches
++__pycache__/
++*.py[cod]
++*$py.class
++
++# Python Virtual Environments
++env/
++venv/
++.venv/
++ENV/
++env.bak/
++venv.bak/
+ 
+-# The .vscode folder contains launch configuration and tasks you configure in
+-# VS Code which you may wish to be included in version control, so this line
+-# is commented out by default.
+-#.vscode/
++# Jupyter Notebook
++.ipynb_checkpoints/
+ 
+-# Flutter/Dart/Pub related
+-**/doc/api/
+-**/ios/Flutter/.last_build_id
++# ------------------------------
++# Environment & Secrets
++.env
++.env.*
++*.env
++
++# ------------------------------
++# Coverage & Testing
++.coverage
++.coverage.*
++.cache
++.nosetests*
++htmlcov/
++*.cover
++.pytest_cache/
++.tox/
++.mypy_cache/
++.pytype/
++.pyre/
++.dmypy.json
++
++# ------------------------------
++# Python Packaging
++build/
++dist/
++*.egg-info/
++*.egg
++.installed.cfg
++
++# ------------------------------
++# Flutter & Dart
+ .dart_tool/
++.packages
+ .flutter-plugins
+ .flutter-plugins-dependencies
+-.pub-cache/
+-.pub/
+-/build/
++.metadata
++.melos_tool/
++pubspec.lock
++build/
++
++# Flutter Generated Files
++generated_plugin_registrant.dart
++
++# Flutter Web
++web/.dart_tool/
++web/build/
+ 
+-# Symbolication related
+-app.*.symbols
++# ------------------------------
++# Android
++android/.gradle/
++android/.idea/
++android/local.properties
++android/gradle.properties
++android/app/build/
++frontend/android/.gradle/
++frontend/android/.idea/
++frontend/android/build/
++frontend/android/local.properties
++frontend/android/frontend_android.iml
+ 
+-# Obfuscation related
+-app.*.map.json
++# ------------------------------
++# iOS
++ios/Pods/
++ios/.symlinks/
++ios/Flutter/ephemeral/
++ios/Flutter/Flutter.framework
++ios/Flutter/Flutter.podspec
++ios/Runner.xcworkspace/
++xcuserdata/
++DerivedData/
++frontend/ios/Flutter/Generated*.xcconfig
++frontend/ios/Flutter/flutter_export_environment*.sh
++frontend/ios/Runner.xcworkspace/
++frontend/ios/Runner.xcodeproj/
++frontend/ios/Pods/
+ 
+-# Android Studio will place build artifacts here
+-/android/app/debug
+-/android/app/profile
+-/android/app/release
++# ------------------------------
++# Node.js (for native modules or tools)
++node_modules/
++SkinCancerDetectionNative/node_modules/
++SkinCancerDetectionNative/
++
++# ------------------------------
++# ML/AI Checkpoints
++*.pt
++*.h5
++*.onnx
++*.ckpt
++backend/models/best.pt
++backend/temp/
++**/checkpoints/
++
++# ------------------------------
++# Asset Cache & Build Artifacts
++*.lock
++*.bak
++*.zip
++*.tar.gz
++*.rar
++
++# ------------------------------
++# Other OS/System files
++Thumbs.db
++ehthumbs.db
++Desktop.ini
++
++# ------------------------------
++# Editor swap files
++*.swo
++*.swp
+diff --git a/frontend/android/app/build.gradle.kts b/frontend/android/app/build.gradle.kts
+index 7917989..3c93195 100644
+--- a/frontend/android/app/build.gradle.kts
++++ b/frontend/android/app/build.gradle.kts
+@@ -8,7 +8,7 @@ plugins {
+ android {
+     namespace = "com.example.frontend"
+     compileSdk = flutter.compileSdkVersion
+-    ndkVersion = "27.0.12077973"
++    ndkVersion = flutter.ndkVersion
+ 
+     compileOptions {
+         sourceCompatibility = JavaVersion.VERSION_11
+diff --git a/frontend/android/app/src/main/AndroidManifest.xml b/frontend/android/app/src/main/AndroidManifest.xml
+index 4602729..ff6552a 100644
+--- a/frontend/android/app/src/main/AndroidManifest.xml
++++ b/frontend/android/app/src/main/AndroidManifest.xml
+@@ -39,4 +39,4 @@
+             android:value="2" />
+     </application>
+ 
+-</manifest>
++</manifest>
+\ No newline at end of file
+diff --git a/frontend/android/app/src/main/res/values-night/styles.xml b/frontend/android/app/src/main/res/values-night/styles.xml
+index 1630b4e..06952be 100644
+--- a/frontend/android/app/src/main/res/values-night/styles.xml
++++ b/frontend/android/app/src/main/res/values-night/styles.xml
+@@ -1,10 +1,18 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
++    <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is on -->
++    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
++        <!-- Show a splash screen on the activity. Automatically removed when
++             the Flutter engine draws its first frame -->
+         <item name="android:windowBackground">@drawable/launch_background</item>
+     </style>
++    <!-- Theme applied to the Android Window as soon as the process has started.
++         This theme determines the color of the Android Window while your
++         Flutter UI initializes, as well as behind your Flutter UI while its
++         running.
+ 
+-    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
++         This Theme is only used starting with V2 of Flutter's Android embedding. -->
++    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+         <item name="android:windowBackground">?android:colorBackground</item>
+     </style>
+ </resources>
+diff --git a/frontend/android/app/src/main/res/values/styles.xml b/frontend/android/app/src/main/res/values/styles.xml
+index a73bb30..cb1ef88 100644
+--- a/frontend/android/app/src/main/res/values/styles.xml
++++ b/frontend/android/app/src/main/res/values/styles.xml
+@@ -15,4 +15,4 @@
+     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
+         <item name="android:windowBackground">?android:colorBackground</item>
+     </style>
+-</resources>
+\ No newline at end of file
++</resources>
+diff --git a/frontend/android/gradle/wrapper/gradle-wrapper.properties b/frontend/android/gradle/wrapper/gradle-wrapper.properties
+index 22041e5..afa1e8e 100644
+--- a/frontend/android/gradle/wrapper/gradle-wrapper.properties
++++ b/frontend/android/gradle/wrapper/gradle-wrapper.properties
+@@ -2,4 +2,4 @@ distributionBase=GRADLE_USER_HOME
+ distributionPath=wrapper/dists
+ zipStoreBase=GRADLE_USER_HOME
+ zipStorePath=wrapper/dists
+-distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-all.zip
+\ No newline at end of file
++distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-all.zip
+diff --git a/frontend/ios/Flutter/Generated 2.xcconfig b/frontend/ios/Flutter/Generated 2.xcconfig
+deleted file mode 100644
+index b5eafa1..0000000
+--- a/frontend/ios/Flutter/Generated 2.xcconfig	
++++ /dev/null
+@@ -1,14 +0,0 @@
+-// This is a generated file; do not edit or check into version control.
+-FLUTTER_ROOT=/opt/homebrew/Caskroom/flutter/3.29.3/flutter
+-FLUTTER_APPLICATION_PATH=/Users/zcengiz/Desktop/Skin-Cancer-Detection-App/frontend
+-COCOAPODS_PARALLEL_CODE_SIGN=true
+-FLUTTER_TARGET=lib/main.dart
+-FLUTTER_BUILD_DIR=build
+-FLUTTER_BUILD_NAME=1.0.0
+-FLUTTER_BUILD_NUMBER=1
+-EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386
+-EXCLUDED_ARCHS[sdk=iphoneos*]=armv7
+-DART_OBFUSCATION=false
+-TRACK_WIDGET_CREATION=true
+-TREE_SHAKE_ICONS=false
+-PACKAGE_CONFIG=.dart_tool/package_config.json
+diff --git a/frontend/ios/Flutter/Generated 3.xcconfig b/frontend/ios/Flutter/Generated 3.xcconfig
+deleted file mode 100644
+index b5eafa1..0000000
+--- a/frontend/ios/Flutter/Generated 3.xcconfig	
++++ /dev/null
+@@ -1,14 +0,0 @@
+-// This is a generated file; do not edit or check into version control.
+-FLUTTER_ROOT=/opt/homebrew/Caskroom/flutter/3.29.3/flutter
+-FLUTTER_APPLICATION_PATH=/Users/zcengiz/Desktop/Skin-Cancer-Detection-App/frontend
+-COCOAPODS_PARALLEL_CODE_SIGN=true
+-FLUTTER_TARGET=lib/main.dart
+-FLUTTER_BUILD_DIR=build
+-FLUTTER_BUILD_NAME=1.0.0
+-FLUTTER_BUILD_NUMBER=1
+-EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386
+-EXCLUDED_ARCHS[sdk=iphoneos*]=armv7
+-DART_OBFUSCATION=false
+-TRACK_WIDGET_CREATION=true
+-TREE_SHAKE_ICONS=false
+-PACKAGE_CONFIG=.dart_tool/package_config.json
+diff --git a/frontend/ios/Flutter/Generated 4.xcconfig b/frontend/ios/Flutter/Generated 4.xcconfig
+deleted file mode 100644
+index b5eafa1..0000000
+--- a/frontend/ios/Flutter/Generated 4.xcconfig	
++++ /dev/null
+@@ -1,14 +0,0 @@
+-// This is a generated file; do not edit or check into version control.
+-FLUTTER_ROOT=/opt/homebrew/Caskroom/flutter/3.29.3/flutter
+-FLUTTER_APPLICATION_PATH=/Users/zcengiz/Desktop/Skin-Cancer-Detection-App/frontend
+-COCOAPODS_PARALLEL_CODE_SIGN=true
+-FLUTTER_TARGET=lib/main.dart
+-FLUTTER_BUILD_DIR=build
+-FLUTTER_BUILD_NAME=1.0.0
+-FLUTTER_BUILD_NUMBER=1
+-EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386
+-EXCLUDED_ARCHS[sdk=iphoneos*]=armv7
+-DART_OBFUSCATION=false
+-TRACK_WIDGET_CREATION=true
+-TREE_SHAKE_ICONS=false
+-PACKAGE_CONFIG=.dart_tool/package_config.json
+diff --git a/frontend/ios/Flutter/Generated 5.xcconfig b/frontend/ios/Flutter/Generated 5.xcconfig
+deleted file mode 100644
+index b5eafa1..0000000
+--- a/frontend/ios/Flutter/Generated 5.xcconfig	
++++ /dev/null
+@@ -1,14 +0,0 @@
+-// This is a generated file; do not edit or check into version control.
+-FLUTTER_ROOT=/opt/homebrew/Caskroom/flutter/3.29.3/flutter
+-FLUTTER_APPLICATION_PATH=/Users/zcengiz/Desktop/Skin-Cancer-Detection-App/frontend
+-COCOAPODS_PARALLEL_CODE_SIGN=true
+-FLUTTER_TARGET=lib/main.dart
+-FLUTTER_BUILD_DIR=build
+-FLUTTER_BUILD_NAME=1.0.0
+-FLUTTER_BUILD_NUMBER=1
+-EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386
+-EXCLUDED_ARCHS[sdk=iphoneos*]=armv7
+-DART_OBFUSCATION=false
+-TRACK_WIDGET_CREATION=true
+-TREE_SHAKE_ICONS=false
+-PACKAGE_CONFIG=.dart_tool/package_config.json
+diff --git a/frontend/ios/Flutter/flutter_export_environment 2.sh b/frontend/ios/Flutter/flutter_export_environment 2.sh
+deleted file mode 100755
+index fef710c..0000000
+--- a/frontend/ios/Flutter/flutter_export_environment 2.sh	
++++ /dev/null
+@@ -1,13 +0,0 @@
+-#!/bin/sh
+-# This is a generated file; do not edit or check into version control.
+-export "FLUTTER_ROOT=/opt/homebrew/Caskroom/flutter/3.29.3/flutter"
+-export "FLUTTER_APPLICATION_PATH=/Users/zcengiz/Desktop/Skin-Cancer-Detection-App/frontend"
+-export "COCOAPODS_PARALLEL_CODE_SIGN=true"
+-export "FLUTTER_TARGET=lib/main.dart"
+-export "FLUTTER_BUILD_DIR=build"
+-export "FLUTTER_BUILD_NAME=1.0.0"
+-export "FLUTTER_BUILD_NUMBER=1"
+-export "DART_OBFUSCATION=false"
+-export "TRACK_WIDGET_CREATION=true"
+-export "TREE_SHAKE_ICONS=false"
+-export "PACKAGE_CONFIG=.dart_tool/package_config.json"
+diff --git a/frontend/ios/Flutter/flutter_export_environment 3.sh b/frontend/ios/Flutter/flutter_export_environment 3.sh
+deleted file mode 100755
+index fef710c..0000000
+--- a/frontend/ios/Flutter/flutter_export_environment 3.sh	
++++ /dev/null
+@@ -1,13 +0,0 @@
+-#!/bin/sh
+-# This is a generated file; do not edit or check into version control.
+-export "FLUTTER_ROOT=/opt/homebrew/Caskroom/flutter/3.29.3/flutter"
+-export "FLUTTER_APPLICATION_PATH=/Users/zcengiz/Desktop/Skin-Cancer-Detection-App/frontend"
+-export "COCOAPODS_PARALLEL_CODE_SIGN=true"
+-export "FLUTTER_TARGET=lib/main.dart"
+-export "FLUTTER_BUILD_DIR=build"
+-export "FLUTTER_BUILD_NAME=1.0.0"
+-export "FLUTTER_BUILD_NUMBER=1"
+-export "DART_OBFUSCATION=false"
+-export "TRACK_WIDGET_CREATION=true"
+-export "TREE_SHAKE_ICONS=false"
+-export "PACKAGE_CONFIG=.dart_tool/package_config.json"
+diff --git a/frontend/ios/Flutter/flutter_export_environment 4.sh b/frontend/ios/Flutter/flutter_export_environment 4.sh
+deleted file mode 100755
+index fef710c..0000000
+--- a/frontend/ios/Flutter/flutter_export_environment 4.sh	
++++ /dev/null
+@@ -1,13 +0,0 @@
+-#!/bin/sh
+-# This is a generated file; do not edit or check into version control.
+-export "FLUTTER_ROOT=/opt/homebrew/Caskroom/flutter/3.29.3/flutter"
+-export "FLUTTER_APPLICATION_PATH=/Users/zcengiz/Desktop/Skin-Cancer-Detection-App/frontend"
+-export "COCOAPODS_PARALLEL_CODE_SIGN=true"
+-export "FLUTTER_TARGET=lib/main.dart"
+-export "FLUTTER_BUILD_DIR=build"
+-export "FLUTTER_BUILD_NAME=1.0.0"
+-export "FLUTTER_BUILD_NUMBER=1"
+-export "DART_OBFUSCATION=false"
+-export "TRACK_WIDGET_CREATION=true"
+-export "TREE_SHAKE_ICONS=false"
+-export "PACKAGE_CONFIG=.dart_tool/package_config.json"
+diff --git a/frontend/ios/Flutter/flutter_export_environment 5.sh b/frontend/ios/Flutter/flutter_export_environment 5.sh
+deleted file mode 100755
+index fef710c..0000000
+--- a/frontend/ios/Flutter/flutter_export_environment 5.sh	
++++ /dev/null
+@@ -1,13 +0,0 @@
+-#!/bin/sh
+-# This is a generated file; do not edit or check into version control.
+-export "FLUTTER_ROOT=/opt/homebrew/Caskroom/flutter/3.29.3/flutter"
+-export "FLUTTER_APPLICATION_PATH=/Users/zcengiz/Desktop/Skin-Cancer-Detection-App/frontend"
+-export "COCOAPODS_PARALLEL_CODE_SIGN=true"
+-export "FLUTTER_TARGET=lib/main.dart"
+-export "FLUTTER_BUILD_DIR=build"
+-export "FLUTTER_BUILD_NAME=1.0.0"
+-export "FLUTTER_BUILD_NUMBER=1"
+-export "DART_OBFUSCATION=false"
+-export "TRACK_WIDGET_CREATION=true"
+-export "TREE_SHAKE_ICONS=false"
+-export "PACKAGE_CONFIG=.dart_tool/package_config.json"
+diff --git a/frontend/ios/Runner/Base.lproj/LaunchScreen 2.storyboard b/frontend/ios/Runner/Base.lproj/LaunchScreen 2.storyboard
+deleted file mode 100644
+index f2e259c..0000000
+--- a/frontend/ios/Runner/Base.lproj/LaunchScreen 2.storyboard	
++++ /dev/null
+@@ -1,37 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="12121" systemVersion="16G29" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+-    <dependencies>
+-        <deployment identifier="iOS"/>
+-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="12089"/>
+-    </dependencies>
+-    <scenes>
+-        <!--View Controller-->
+-        <scene sceneID="EHf-IW-A2E">
+-            <objects>
+-                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+-                    <layoutGuides>
+-                        <viewControllerLayoutGuide type="top" id="Ydg-fD-yQy"/>
+-                        <viewControllerLayoutGuide type="bottom" id="xbc-2k-c8Z"/>
+-                    </layoutGuides>
+-                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+-                        <subviews>
+-                            <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
+-                            </imageView>
+-                        </subviews>
+-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+-                        <constraints>
+-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
+-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
+-                        </constraints>
+-                    </view>
+-                </viewController>
+-                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+-            </objects>
+-            <point key="canvasLocation" x="53" y="375"/>
+-        </scene>
+-    </scenes>
+-    <resources>
+-        <image name="LaunchImage" width="168" height="185"/>
+-    </resources>
+-</document>
+diff --git a/frontend/ios/Runner/Base.lproj/Main 2.storyboard b/frontend/ios/Runner/Base.lproj/Main 2.storyboard
+deleted file mode 100644
+index f3c2851..0000000
+--- a/frontend/ios/Runner/Base.lproj/Main 2.storyboard	
++++ /dev/null
+@@ -1,26 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="10117" systemVersion="15F34" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="BYZ-38-t0r">
+-    <dependencies>
+-        <deployment identifier="iOS"/>
+-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
+-    </dependencies>
+-    <scenes>
+-        <!--Flutter View Controller-->
+-        <scene sceneID="tne-QT-ifu">
+-            <objects>
+-                <viewController id="BYZ-38-t0r" customClass="FlutterViewController" sceneMemberID="viewController">
+-                    <layoutGuides>
+-                        <viewControllerLayoutGuide type="top" id="y3c-jy-aDJ"/>
+-                        <viewControllerLayoutGuide type="bottom" id="wfy-db-euE"/>
+-                    </layoutGuides>
+-                    <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
+-                        <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+-                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+-                    </view>
+-                </viewController>
+-                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+-            </objects>
+-        </scene>
+-    </scenes>
+-</document>
+diff --git a/frontend/ios/RunnerTests/RunnerTests 2.swift b/frontend/ios/RunnerTests/RunnerTests 2.swift
+deleted file mode 100644
+index 86a7c3b..0000000
+--- a/frontend/ios/RunnerTests/RunnerTests 2.swift	
++++ /dev/null
+@@ -1,12 +0,0 @@
+-import Flutter
+-import UIKit
+-import XCTest
+-
+-class RunnerTests: XCTestCase {
+-
+-  func testExample() {
+-    // If you add code to the Runner application, consider adding tests here.
+-    // See https://developer.apple.com/documentation/xctest for more information about using XCTest.
+-  }
+-
+-}
+diff --git a/frontend/lib/app/router.dart b/frontend/lib/app/router.dart
+index f718367..960e96d 100644
+Binary files a/frontend/lib/app/router.dart and b/frontend/lib/app/router.dart differ
+diff --git a/frontend/lib/screens/scan/camera_screen.dart b/frontend/lib/screens/scan/camera_screen.dart
+index 4717331..0c5dd59 100644
+--- a/frontend/lib/screens/scan/camera_screen.dart
++++ b/frontend/lib/screens/scan/camera_screen.dart
+@@ -33,6 +33,13 @@ class _CameraScreenState extends State<CameraScreen>
+     _initializeCamera();
+   }
+ 
++  @override
++  void dispose() {
++    WidgetsBinding.instance.removeObserver(this);
++    _controller.dispose();
++    super.dispose();
++  }
++
+   Future<void> _initializeCamera() async {
+     _cameras = await availableCameras();
+     _startCamera(_cameras[0]);
+@@ -62,13 +69,6 @@ class _CameraScreenState extends State<CameraScreen>
+     _startCamera(newCamera);
+   }
+ 
+-  @override
+-  void dispose() {
+-    WidgetsBinding.instance.removeObserver(this);
+-    _controller.dispose();
+-    super.dispose();
+-  }
+-
+   void _getBoxRect() {
+     WidgetsBinding.instance.addPostFrameCallback((_) {
+       final renderBox =
+@@ -89,8 +89,11 @@ class _CameraScreenState extends State<CameraScreen>
+     final image = await _controller.takePicture();
+     final croppedPath = await _cropToBox(image.path);
+     if (!mounted) return;
++
+     context.go(
+-        '/detection-result?photoUri=${Uri.encodeComponent(croppedPath)}&bodyPart=${widget.bodyPart}');
++      '/detection-result',
++      extra: File(croppedPath),
++    );
+   }
+ 
+   Future<String> _cropToBox(String imagePath) async {
+@@ -101,12 +104,10 @@ class _CameraScreenState extends State<CameraScreen>
+       bytes,
+       allowUpscaling: false,
+     );
+-
+     final frame = await codec.getNextFrame();
+     final image = frame.image;
+ 
+     final screenSize = MediaQuery.of(context).size;
+-
+     final scaleX = image.width / screenSize.width;
+     final scaleY = image.height / screenSize.height;
+ 
+@@ -134,7 +135,6 @@ class _CameraScreenState extends State<CameraScreen>
+ 
+     final byteData =
+         await croppedImage.toByteData(format: ui.ImageByteFormat.png);
+-
+     final directory = await getTemporaryDirectory();
+     final croppedPath =
+         '${directory.path}/cropped_${DateTime.now().millisecondsSinceEpoch}.png';
+@@ -172,7 +172,7 @@ class _CameraScreenState extends State<CameraScreen>
+                       const Padding(
+                         padding: EdgeInsets.only(bottom: 16),
+                         child: Text(
+-                          "Take a photo\n2–4 in (5–10 cm) from the object\nThe photo must be well-defined",
++                          "Take a photo\n5–10 cm from the object\nThe photo must be well-defined",
+                           textAlign: TextAlign.center,
+                           style: TextStyle(
+                             fontSize: 16,
+diff --git a/frontend/lib/screens/scan/detection_result_screen.dart b/frontend/lib/screens/scan/detection_result_screen.dart
+index 7e8242b..b96fb70 100644
+--- a/frontend/lib/screens/scan/detection_result_screen.dart
++++ b/frontend/lib/screens/scan/detection_result_screen.dart
+@@ -5,14 +5,9 @@ import 'package:http/http.dart' as http;
+ import 'package:go_router/go_router.dart';
+ 
+ class DetectionResultScreen extends StatefulWidget {
+-  final String photoUri;
+-  final String bodyPart;
++  final File file; // <- Burası önemli!
+ 
+-  const DetectionResultScreen({
+-    super.key,
+-    required this.photoUri,
+-    required this.bodyPart,
+-  });
++  const DetectionResultScreen({super.key, required this.file});
+ 
+   @override
+   State<DetectionResultScreen> createState() => _DetectionResultScreenState();
+@@ -73,20 +68,28 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
+   }
+ 
+   Future<void> _detect() async {
+-    final request = http.MultipartRequest(
+-      'POST',
+-      Uri.parse("http://192.168.0.10:8000/detect"),
+-    );
+-    request.files
+-        .add(await http.MultipartFile.fromPath('file', widget.photoUri));
+-    final response = await request.send();
++    try {
++      final request = http.MultipartRequest(
++        'POST',
++        Uri.parse("http://192.168.0.10:8000/detect"),
++      );
++      request.files
++          .add(await http.MultipartFile.fromPath('file', widget.file.path));
++      final response = await request.send();
++      final responseBody = await response.stream.bytesToString();
++      final data = jsonDecode(responseBody);
+ 
+-    final responseBody = await response.stream.bytesToString();
+-    final data = jsonDecode(responseBody);
+-    setState(() {
+-      _predictions = List<Map<String, dynamic>>.from(data['predictions']);
+-      _loading = false;
+-    });
++      setState(() {
++        _predictions = List<Map<String, dynamic>>.from(data['predictions']);
++        _loading = false;
++      });
++    } catch (e) {
++      debugPrint("Detection error: $e");
++      setState(() {
++        _predictions = [];
++        _loading = false;
++      });
++    }
+   }
+ 
+   @override
+@@ -110,55 +113,59 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
+         iconTheme: const IconThemeData(color: Colors.white),
+       ),
+       body: SafeArea(
+-        child: _loading
+-            ? Stack(
+-                alignment: Alignment.center,
+-                children: [
+-                  Image.file(
+-                    File(widget.photoUri),
+-                    width: double.infinity,
+-                    height: double.infinity,
+-                    fit: BoxFit.cover,
+-                  ),
+-                  AnimatedBuilder(
+-                    animation: _animation,
+-                    builder: (context, child) {
+-                      return Positioned(
+-                        left: MediaQuery.of(context).size.width *
+-                            _animation.value,
+-                        top: 0,
+-                        bottom: 0,
+-                        child: Container(
+-                          width: 3,
+-                          color: Colors.greenAccent,
+-                        ),
+-                      );
+-                    },
+-                  ),
+-                  const Positioned(
+-                    bottom: 40,
+-                    child: Column(
+-                      children: [
+-                        CircularProgressIndicator(color: Colors.green),
+-                        SizedBox(height: 16),
+-                        Text(
+-                          'Analyzing your photo...',
+-                          style: TextStyle(fontSize: 16, color: Colors.white),
+-                        ),
+-                      ],
+-                    ),
+-                  )
+-                ],
+-              )
+-            : _buildResult(),
++        child: _loading ? _buildLoadingView() : _buildResult(),
+       ),
+     );
+   }
+ 
++  Widget _buildLoadingView() {
++    return Stack(
++      alignment: Alignment.center,
++      children: [
++        Image.file(
++          widget.file,
++          width: double.infinity,
++          height: double.infinity,
++          fit: BoxFit.cover,
++        ),
++        AnimatedBuilder(
++          animation: _animation,
++          builder: (context, child) {
++            return Positioned(
++              left: MediaQuery.of(context).size.width * _animation.value,
++              top: 0,
++              bottom: 0,
++              child: Container(
++                width: 3,
++                color: Colors.greenAccent,
++              ),
++            );
++          },
++        ),
++        const Positioned(
++          bottom: 40,
++          child: Column(
++            children: [
++              CircularProgressIndicator(color: Colors.green),
++              SizedBox(height: 16),
++              Text(
++                'Analyzing your photo...',
++                style: TextStyle(fontSize: 16, color: Colors.white),
++              ),
++            ],
++          ),
++        )
++      ],
++    );
++  }
++
+   Widget _buildResult() {
+     if (_predictions == null || _predictions!.isEmpty) {
+       return const Center(
+-        child: Text("No lesion detected."),
++        child: Text(
++          "No lesion detected.",
++          style: TextStyle(fontSize: 16),
++        ),
+       );
+     }
+ 
+@@ -179,7 +186,7 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
+             child: ClipRRect(
+               borderRadius: BorderRadius.circular(16),
+               child: Image.file(
+-                File(widget.photoUri),
++                widget.file,
+                 width: 200,
+                 height: 200,
+                 fit: BoxFit.cover,
+@@ -203,8 +210,8 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
+     required String label,
+     required String confidence,
+     required String risk,
+-    required String advice,
+     required Color riskColor,
++    required String advice,
+   }) {
+     return Card(
+       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

@@ -1,0 +1,57 @@
+name: frontend
+description: "Skin Cancer Detection App in Flutter"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.1.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.2.0
+  flutter_dotenv: ^5.1.0
+  provider: ^6.1.2
+  jwt_decoder: ^2.0.1
+  fluttertoast: ^8.2.4
+  image_picker: ^1.1.2
+  screenshot: ^3.0.0
+  open_file: ^3.3.2
+  google_fonts: ^6.1.0
+  go_router: ^13.0.0
+  path_provider: ^2.1.5
+  permission_handler: ^12.0.0+1
+  shared_preferences: ^2.2.2
+  printing: ^5.14.2
+  pdf: ^3.11.3
+  file_picker: 10.1.9
+  camera: ^0.11.1
+  lucide_icons: ^0.257.0
+  image: ^4.5.4
+  image_cropper: ^9.1.0
+
+  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/images/profilePlaceholder.png
+    - assets/images/cloud.png
+    - assets/images/rain.png
+    - assets/images/sun.png
+    - .env
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: lib/assets/fonts/Poppins-Regular.ttf
+        - asset: lib/assets/fonts/Poppins-Bold.ttf
+          weight: 700

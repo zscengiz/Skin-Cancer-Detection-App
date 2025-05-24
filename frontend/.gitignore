@@ -1,0 +1,161 @@
+# ------------------------------
+# macOS system files
+.DS_Store
+
+# ------------------------------
+# IDE Configurations
+.vscode/
+.idea/
+*.iml
+
+# ------------------------------
+# Log & Temp Files
+*.log
+*.tmp
+*.swp
+logs/
+*.bak
+
+# ------------------------------
+# Python Bytecode & Caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python Virtual Environments
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# ------------------------------
+# Environment & Secrets
+.env
+.env.*
+*.env
+
+# ------------------------------
+# Coverage & Testing
+.coverage
+.coverage.*
+.cache
+.nosetests*
+htmlcov/
+*.cover
+.pytest_cache/
+.tox/
+.mypy_cache/
+.pytype/
+.pyre/
+.dmypy.json
+
+# ------------------------------
+# Python Packaging
+build/
+dist/
+*.egg-info/
+*.egg
+.installed.cfg
+
+# ------------------------------
+# Flutter & Dart
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins 2
+.flutter-plugins 3
+.flutter-plugins 4
+.flutter-plugins 5
+.flutter-plugins-dependencies
+.flutter-plugins-dependencies 2
+.flutter-plugins-dependencies 3
+.flutter-plugins-dependencies 4
+.flutter-plugins-dependencies 5
+
+.metadata
+.melos_tool/
+pubspec.lock
+build/
+
+# Flutter Generated Files
+generated_plugin_registrant.dart
+
+# Flutter Web
+web/.dart_tool/
+web/build/
+
+# ------------------------------
+# Android
+android/.gradle/
+android/gradle/
+android/gradle 2/
+android/.idea/
+android/local.properties
+android/gradle.properties
+android/app/build/
+frontend/android/.gradle/
+frontend/android/gradle/
+frontend/android/gradle 2/
+frontend/android/.idea/
+frontend/android/build/
+frontend/android/local.properties
+frontend/android/frontend_android.iml
+
+# ------------------------------
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Runner.xcworkspace/
+xcuserdata/
+DerivedData/
+frontend/ios/Flutter/Generated*.xcconfig
+frontend/ios/Flutter/flutter_export_environment*.sh
+frontend/ios/Runner.xcworkspace/
+frontend/ios/Runner.xcodeproj/
+frontend/ios/Pods/
+
+# ------------------------------
+# Node.js (for native modules or tools)
+node_modules/
+SkinCancerDetectionNative/node_modules/
+SkinCancerDetectionNative/
+
+# ------------------------------
+# ML/AI Checkpoints
+*.pt
+*.h5
+*.onnx
+*.ckpt
+backend/models/best.pt
+backend/temp/
+**/checkpoints/
+
+# ------------------------------
+# Asset Cache & Build Artifacts
+*.lock
+*.bak
+*.zip
+*.tar.gz
+*.rar
+
+# ------------------------------
+# Other OS/System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ------------------------------
+# Editor swap files
+*.swo
+*.swp
+
+SkinCancerDetectionNative/
+
