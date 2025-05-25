@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class DetectionResultScreen extends StatefulWidget {
-  final File file; 
-  
+  final File file;
+
   const DetectionResultScreen({super.key, required this.file});
 
   @override
@@ -19,6 +21,7 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
   bool _loading = true;
   late AnimationController _controller;
   late Animation<double> _animation;
+  String? _pdfPath;
 
   static const Map<String, String> fullNames = {
     'MEL': 'Melanoma',
@@ -79,10 +82,17 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
       final responseBody = await response.stream.bytesToString();
       final data = jsonDecode(responseBody);
 
+      final predictions = List<Map<String, dynamic>>.from(data['predictions']);
       setState(() {
-        _predictions = List<Map<String, dynamic>>.from(data['predictions']);
+        _predictions = predictions;
         _loading = false;
       });
+
+      if (predictions.isNotEmpty) {
+        final label = predictions.first['class'];
+        final riskText = riskLevels[label] ?? 'Unknown';
+        await _saveReport(label, riskText);
+      }
     } catch (e) {
       debugPrint("Detection error: $e");
       setState(() {
@@ -91,6 +101,41 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
       });
     }
   }
+
+  Future<void> _saveReport(String label, String risk) async {
+    final dir = await getApplicationDocumentsDirectory();
+    final reportsDir = Directory('${dir.path}/reports');
+    final previewsDir = Directory('${dir.path}/previews');
+    if (!await reportsDir.exists()) await reportsDir.create(recursive: true);
+    if (!await previewsDir.exists()) await previewsDir.create(recursive: true);
+
+    final now = DateTime.now();
+    final timestamp =
+        "${now.year}${_twoDigits(now.month)}${_twoDigits(now.day)}_${_twoDigits(now.hour)}${_twoDigits(now.minute)}";
+
+    final riskLevel = risk.toLowerCase().contains('high')
+        ? 'High'
+        : risk.toLowerCase().contains('medium')
+            ? 'Medium'
+            : 'Low';
+
+    final fileName = "${timestamp}_${riskLevel}_$label.pdf";
+    final filePath = "${reportsDir.path}/$fileName";
+    final previewPath =
+        "${previewsDir.path}/${fileName.replaceAll(".pdf", ".jpg")}";
+
+    final file = File(filePath);
+    await file.writeAsBytes([0x25, 0x50, 0x44, 0x46]);
+
+    final previewFile = File(previewPath);
+    await previewFile.writeAsBytes(await widget.file.readAsBytes());
+
+    setState(() {
+      _pdfPath = filePath;
+    });
+  }
+
+  String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
   @override
   Widget build(BuildContext context) {
@@ -111,6 +156,39 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
           color: Colors.white,
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          if (_pdfPath != null)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) async {
+                if (value == 'download') {
+                  await Share.shareXFiles([XFile(_pdfPath!)]);
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'download',
+                  child: Row(
+                    children: [
+                      Icon(Icons.download, size: 20),
+                      SizedBox(width: 8),
+                      Text('PDF olarak indir'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'cancel',
+                  child: Row(
+                    children: [
+                      Icon(Icons.cancel, size: 20),
+                      SizedBox(width: 8),
+                      Text('İptal'),
+                    ],
+                  ),
+                ),
+              ],
+            )
+        ],
       ),
       body: SafeArea(
         child: _loading ? _buildLoadingView() : _buildResult(),
