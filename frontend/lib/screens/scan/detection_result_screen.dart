@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:frontend/screens/reports/pdf.dart';
 
 class DetectionResultScreen extends StatefulWidget {
   final File file;
@@ -90,8 +90,22 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
 
       if (predictions.isNotEmpty) {
         final label = predictions.first['class'];
-        final riskText = riskLevels[label] ?? 'Unknown';
-        await _saveReport(label, riskText);
+        final confidence = predictions.first['confidence'] * 100;
+        final risk = riskLevels[label] ?? 'Unknown';
+        final advice = adviceTexts[label] ?? '-';
+
+        final path = await generatePdfReport(
+          imageFile: widget.file,
+          label: label,
+          confidence: confidence,
+          risk: risk,
+          advice: advice,
+          fullNames: fullNames,
+        );
+
+        setState(() {
+          _pdfPath = path;
+        });
       }
     } catch (e) {
       debugPrint("Detection error: $e");
@@ -101,41 +115,6 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
       });
     }
   }
-
-  Future<void> _saveReport(String label, String risk) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final reportsDir = Directory('${dir.path}/reports');
-    final previewsDir = Directory('${dir.path}/previews');
-    if (!await reportsDir.exists()) await reportsDir.create(recursive: true);
-    if (!await previewsDir.exists()) await previewsDir.create(recursive: true);
-
-    final now = DateTime.now();
-    final timestamp =
-        "${now.year}${_twoDigits(now.month)}${_twoDigits(now.day)}_${_twoDigits(now.hour)}${_twoDigits(now.minute)}";
-
-    final riskLevel = risk.toLowerCase().contains('high')
-        ? 'High'
-        : risk.toLowerCase().contains('medium')
-            ? 'Medium'
-            : 'Low';
-
-    final fileName = "${timestamp}_${riskLevel}_$label.pdf";
-    final filePath = "${reportsDir.path}/$fileName";
-    final previewPath =
-        "${previewsDir.path}/${fileName.replaceAll(".pdf", ".jpg")}";
-
-    final file = File(filePath);
-    await file.writeAsBytes([0x25, 0x50, 0x44, 0x46]);
-
-    final previewFile = File(previewPath);
-    await previewFile.writeAsBytes(await widget.file.readAsBytes());
-
-    setState(() {
-      _pdfPath = filePath;
-    });
-  }
-
-  String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +151,7 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
                     children: [
                       Icon(Icons.download, size: 20),
                       SizedBox(width: 8),
-                      Text('PDF olarak indir'),
+                      Text('Download as PDF'),
                     ],
                   ),
                 ),
@@ -182,7 +161,7 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
                     children: [
                       Icon(Icons.cancel, size: 20),
                       SizedBox(width: 8),
-                      Text('İptal'),
+                      Text('Cancel'),
                     ],
                   ),
                 ),
