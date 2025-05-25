@@ -1,5 +1,3 @@
-// lib/screens/reports/pdf.dart
-
 import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -46,7 +44,7 @@ Future<String> generatePdfReport({
       build: (context) => pw.Container(
         decoration: pw.BoxDecoration(
           color: PdfColors.grey100,
-          borderRadius: const pw.Radius.circular(10),
+          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
         ),
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -91,7 +89,12 @@ Future<String> generatePdfReport({
                   ),
                   pw.SizedBox(height: 10),
                   pw.Center(
-                    child: pw.Image(image, width: 300, height: 300),
+                    child: pw.Image(
+                      image,
+                      width: 300,
+                      height: 300,
+                      fit: pw.BoxFit.cover,
+                    ),
                   ),
                 ],
               ),

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 
-/// Ortalanmış 250x250 crop (kamera/galeri için ortak)
 Future<File> cropImageToSquare(File imageFile) async {
   final bytes = await imageFile.readAsBytes();
   final originalImage = img.decodeImage(bytes);

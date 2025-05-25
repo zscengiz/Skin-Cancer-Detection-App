@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:frontend/services/api_service.dart';
+import 'package:frontend/screens/reports/pdf.dart';
 
 class GalleryPickerScreen extends StatefulWidget {
   const GalleryPickerScreen({super.key});
@@ -90,11 +92,40 @@ class _GalleryPickerScreenState extends State<GalleryPickerScreen>
       if (cropped != null && mounted) {
         _croppedFile = File(cropped.path);
         setState(() {});
-        await Future.delayed(const Duration(seconds: 3));
-        context.go(
-          '/detection-result',
-          extra: _croppedFile!,
+
+        const label = 'NV';
+        const confidence = 90.0;
+        const risk = 'Low risk';
+        const advice = 'Monitor occasionally and visit dermatologist annually.';
+
+        final pdfPath = await generatePdfReport(
+          imageFile: _croppedFile!,
+          label: label,
+          confidence: confidence,
+          risk: risk,
+          advice: advice,
+          fullNames: {
+            'MEL': 'Melanoma',
+            'NV': 'Melanocytic Nevi',
+            'BCC': 'Basal Cell Carcinoma',
+            'AKIEC': 'Actinic Keratoses',
+            'BKL': 'Benign Keratosis',
+            'DF': 'Dermatofibroma',
+            'VASC': 'Vascular Lesion',
+          },
         );
+
+        await ApiService.uploadReport(
+          imageFile: _croppedFile!,
+          pdfFile: File(pdfPath),
+          label: label,
+          confidence: confidence,
+          riskLevel: risk,
+          advice: advice,
+        );
+
+        await Future.delayed(const Duration(seconds: 1));
+        context.go('/detection-result', extra: _croppedFile!);
       } else if (mounted) {
         context.pop();
       }

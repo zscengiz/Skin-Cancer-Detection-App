@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
-import 'api_endpoints.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_endpoints.dart';
+import '../models/report_model.dart';
 
 class ApiService {
   static Future<Map<String, dynamic>> login(
@@ -72,5 +74,60 @@ class ApiService {
     } else {
       return false;
     }
+  }
+
+  static Future<void> uploadReport({
+    required File imageFile,
+    required File pdfFile,
+    required String label,
+    required double confidence,
+    required String riskLevel,
+    required String advice,
+  }) async {
+    final uri = Uri.parse(ApiEndpoints.uploadReport);
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token') ?? '';
+
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..fields['label'] = label
+      ..fields['confidence'] = confidence.toString()
+      ..fields['risk_level'] = riskLevel
+      ..fields['advice'] = advice
+      ..files.add(await http.MultipartFile.fromPath('image', imageFile.path))
+      ..files.add(await http.MultipartFile.fromPath('pdf', pdfFile.path));
+
+    final response = await request.send();
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to upload report');
+    }
+  }
+
+  static Future<List<ReportModel>> getReports() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token') ?? '';
+    final response = await http.get(
+      Uri.parse(ApiEndpoints.getMyReports),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List<dynamic> jsonList = data['data'];
+      return jsonList.map((json) => ReportModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to fetch reports');
+    }
+  }
+
+  static Future<String> getAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token') ?? '';
+  }
+
+  static Future<Map<String, String>> authHeader() async {
+    final token = await getAccessToken();
+    return {'Authorization': 'Bearer $token'};
   }
 }

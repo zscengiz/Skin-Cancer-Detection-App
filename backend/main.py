@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from routes.detection import router as detection_router
+from routes import report_controller
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -46,6 +47,7 @@ app.add_exception_handler(Exception, generic_exception_handler)
 app.add_exception_handler(BaseException, base_exception_handler)
 app.include_router(auth_router)
 app.include_router(detection_router)
+app.include_router(report_controller.router)
 
 @app.get("/")
 def read_root():
