@@ -76,6 +76,29 @@ class ApiService {
     }
   }
 
+  static Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    final token = await getAccessToken();
+    final response = await http.post(
+      Uri.parse(ApiEndpoints.changePassword),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'old_password': oldPassword,
+        'new_password': newPassword,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          jsonDecode(response.body)['detail'] ?? 'Password change failed');
+    }
+  }
+
   static Future<void> uploadReport({
     required File imageFile,
     required File pdfFile,

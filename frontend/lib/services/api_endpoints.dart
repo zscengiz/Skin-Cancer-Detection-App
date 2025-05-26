@@ -15,4 +15,5 @@ class ApiEndpoints {
   static String getImage(String reportId) =>
       '$baseUrl/api/reports/image/$reportId';
   static String getPdf(String reportId) => '$baseUrl/api/reports/pdf/$reportId';
+  static final String changePassword = "$baseUrl/api/auth/change-password";
 }

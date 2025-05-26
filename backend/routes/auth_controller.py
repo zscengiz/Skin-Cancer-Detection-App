@@ -182,6 +182,28 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
         }
     )
 
+@router.post("/change-password")
+async def change_password(
+    old_password: str = Body(...),
+    new_password: str = Body(...),
+    current_user: dict = Depends(get_current_user)
+):
+    user = await user_collection.find_one({"id": current_user["user_id"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not bcrypt.checkpw(old_password.encode('utf-8'), user["hashed_password"].encode('utf-8')):
+        raise HTTPException(status_code=400, detail="Old password is incorrect")
+
+    hashed_new = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    await user_collection.update_one(
+        {"id": current_user["user_id"]},
+        {"$set": {"hashed_password": hashed_new}}
+    )
+
+    return success_response(message="Password changed successfully")
+
+
 @router.post("/logout")
 async def logout(
     access_token: str = Body(..., embed=True),
