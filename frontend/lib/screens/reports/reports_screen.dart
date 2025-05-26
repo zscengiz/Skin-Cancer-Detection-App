@@ -29,10 +29,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _fetchReports() async {
     try {
       final data = await ApiService.getReports();
-      for (final r in data) {
-        debugPrint(
-            "REPORT LOADED: ${r.label} | ${r.confidence} | ${r.riskLevel} | ${r.advice}");
-      }
       setState(() {
         reports = data;
         _loading = false;
@@ -76,7 +72,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  Color _getRiskColor(String risk) {
+  Color _getRiskCardColor(String risk, bool isDark) {
+    if (isDark) return Colors.grey[850]!;
     switch (risk.toLowerCase()) {
       case 'high risk':
         return Colors.red.shade100;
@@ -89,22 +86,63 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
+  Color _getRiskTextColor(String risk) {
+    switch (risk.toLowerCase()) {
+      case 'high risk':
+        return Colors.red;
+      case 'medium risk':
+        return Colors.orange;
+      case 'low risk':
+        return Colors.green;
+      default:
+        return Colors.black;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const lightBg = Color(0xFFF0F6FF);
+    const lightText = Color(0xFF4991FF);
+
     return Scaffold(
+      backgroundColor: isDark ? Colors.black : lightBg,
       appBar: AppBar(
-        title: const Text("Saved Reports"),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/home'),
+        automaticallyImplyLeading: false,
+        backgroundColor: isDark ? Colors.black : lightBg,
+        elevation: 0,
+        title: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.home),
+              color: isDark ? Colors.white : lightText,
+              onPressed: () => context.go('/home'),
+              tooltip: 'Go to Home',
+            ),
+            const SizedBox(width: 8),
+            Text(
+              "Saved Reports",
+              style: TextStyle(
+                color: isDark ? Colors.white : lightText,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+                  color: isDark ? Colors.white : lightText))
           : reports.isEmpty
-              ? const Center(child: Text("No reports found."))
+              ? Center(
+                  child: Text(
+                    "No reports found.",
+                    style: TextStyle(
+                        color: isDark ? Colors.white : lightText, fontSize: 16),
+                  ),
+                )
               : ListView.builder(
                   itemCount: reports.length,
                   padding: const EdgeInsets.all(16),
@@ -112,10 +150,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     final report = reports[index];
                     final imageUrl = ApiEndpoints.getImage(report.id);
                     return Card(
-                      color: _getRiskColor(report.riskLevel),
+                      color: _getRiskCardColor(report.riskLevel, isDark),
                       margin: const EdgeInsets.only(bottom: 16),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 3,
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(16),
                         leading: ClipRRect(
@@ -129,8 +169,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                   width: 70,
                                   height: 70,
                                   child: Center(
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2)),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
                                 );
                               } else if (snapshot.hasError ||
                                   !snapshot.hasData) {
@@ -148,16 +190,33 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         ),
                         title: Text(
                           report.label,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color:
+                                isDark ? Colors.white : const Color(0xFF333333),
+                          ),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            const SizedBox(height: 4),
                             Text(
-                                "Confidence: ${report.confidence.toStringAsFixed(1)}%"),
-                            Text("Risk: ${report.riskLevel}"),
-                            Text("Advice: ${report.advice}"),
+                              "Confidence: ${report.confidence.toStringAsFixed(1)}%",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: isDark ? Colors.white70 : Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              "Risk: ${report.riskLevel}",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: _getRiskTextColor(report.riskLevel),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                         trailing: PopupMenuButton<String>(

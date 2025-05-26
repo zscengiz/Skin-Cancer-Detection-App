@@ -1,28 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.light;
+  bool _isDarkMode = false;
 
-  ThemeProvider() {
-    _loadTheme();
-  }
+  bool get isDarkMode => _isDarkMode;
 
-  ThemeMode get themeMode => _themeMode;
+  ThemeMode get themeMode => _isDarkMode ? ThemeMode.dark : ThemeMode.light;
 
-  bool get isDarkMode => _themeMode == ThemeMode.dark;
-
-  Future<void> toggleTheme(bool isOn) async {
-    _themeMode = isOn ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isDarkMode', isOn);
-  }
-
-  Future<void> _loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    final isDark = prefs.getBool('isDarkMode') ?? false;
-    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+  void toggleTheme(bool isDark) {
+    _isDarkMode = isDark;
     notifyListeners();
   }
+
+  static final darkTheme = ThemeData(
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: Colors.black,
+    primaryColor: Colors.white,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.black,
+      foregroundColor: Colors.white,
+      elevation: 0,
+    ),
+    textTheme: const TextTheme(
+      bodyMedium: TextStyle(color: Colors.white),
+      bodyLarge: TextStyle(color: Colors.white),
+      titleLarge: TextStyle(color: Colors.white),
+    ),
+    iconTheme: const IconThemeData(color: Colors.white),
+    switchTheme: SwitchThemeData(
+      thumbColor: MaterialStatePropertyAll(Colors.white),
+      trackColor: MaterialStatePropertyAll(Colors.white),
+    ),
+  );
+
+  static final lightTheme = ThemeData(
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: Colors.white,
+    primaryColor: Colors.blue,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      elevation: 0,
+    ),
+  );
 }

@@ -118,27 +118,39 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? Colors.black : const Color(0xFFF0F6FF);
+    final textColor = isDark ? Colors.white : const Color(0xFF4991FF);
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: bgColor,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/home'),
+        automaticallyImplyLeading: false,
+        backgroundColor: bgColor,
+        elevation: 0,
+        title: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.home),
+              color: textColor,
+              onPressed: () => context.go('/home'),
+              tooltip: 'Go to Home',
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Detection Result',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
-        title: const Text('Detection Result'),
-        centerTitle: true,
-        backgroundColor: Colors.deepPurple[600],
-        elevation: 4,
-        titleTextStyle: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           if (_pdfPath != null)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
+              icon: Icon(Icons.more_vert, color: textColor),
               onSelected: (value) async {
                 if (value == 'download') {
                   await Share.shareXFiles([XFile(_pdfPath!)]);
@@ -155,22 +167,12 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
                     ],
                   ),
                 ),
-                const PopupMenuItem(
-                  value: 'cancel',
-                  child: Row(
-                    children: [
-                      Icon(Icons.cancel, size: 20),
-                      SizedBox(width: 8),
-                      Text('Cancel'),
-                    ],
-                  ),
-                ),
               ],
             )
         ],
       ),
       body: SafeArea(
-        child: _loading ? _buildLoadingView() : _buildResult(),
+        child: _loading ? _buildLoadingView() : _buildResult(isDark),
       ),
     );
   }
@@ -216,12 +218,13 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
     );
   }
 
-  Widget _buildResult() {
+  Widget _buildResult(bool isDark) {
     if (_predictions == null || _predictions!.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           "No lesion detected.",
-          style: TextStyle(fontSize: 16),
+          style: TextStyle(
+              fontSize: 16, color: isDark ? Colors.white : Colors.black),
         ),
       );
     }
@@ -252,46 +255,36 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
           ),
           const SizedBox(height: 24),
           _buildInfoCard(
-            label: fullLabel,
-            confidence: confidence,
-            risk: risk,
-            riskColor: riskColor,
-            advice: advice,
-          ),
+              fullLabel, confidence, risk, riskColor, advice, isDark),
         ],
       ),
     );
   }
 
-  Widget _buildInfoCard({
-    required String label,
-    required String confidence,
-    required String risk,
-    required Color riskColor,
-    required String advice,
-  }) {
+  Widget _buildInfoCard(String label, String confidence, String risk,
+      Color riskColor, String advice, bool isDark) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 6,
-      color: Colors.white,
+      color: isDark ? Colors.grey[850] : Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatusRow(),
+            _buildStatusRow(isDark),
             const Divider(height: 30),
-            _buildField("Diagnosis", label),
-            _buildField("Confidence", "$confidence %"),
-            _buildField("Risk Level", risk, riskColor),
-            _buildField("Advice", advice),
+            _buildField("Diagnosis", label, isDark),
+            _buildField("Confidence", "$confidence %", isDark),
+            _buildField("Risk Level", risk, isDark, riskColor),
+            _buildField("Advice", advice, isDark),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusRow() {
+  Widget _buildStatusRow(bool isDark) {
     return Row(
       children: [
         const Icon(Icons.check_circle, color: Colors.green, size: 28),
@@ -308,7 +301,8 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
     );
   }
 
-  Widget _buildField(String title, String value, [Color? valueColor]) {
+  Widget _buildField(String title, String value, bool isDark,
+      [Color? valueColor]) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -316,14 +310,18 @@ class _DetectionResultScreenState extends State<DetectionResultScreen>
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white70 : Colors.black,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
             style: TextStyle(
               fontSize: 15,
-              color: valueColor ?? Colors.black87,
+              color: valueColor ?? (isDark ? Colors.white : Colors.black87),
             ),
           ),
         ],

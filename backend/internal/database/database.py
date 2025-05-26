@@ -4,25 +4,20 @@ from bson.objectid import ObjectId
 from typing import Optional
 import io
 
-# Config'den bağlantı bilgileri alınıyor
 mongodb_uri = get_config("MONGO_URI")
 mongodb_name = get_config("MONGODB_DATABASE")
 print("DEBUG: mongodb_name =", mongodb_name)
 
-# Motor istemcisi başlatılıyor
 client = AsyncIOMotorClient(mongodb_uri)
 db = client[mongodb_name]
 
-# GridFS bucket'ı motor ile uyumlu olarak başlat
 fs_bucket = AsyncIOMotorGridFSBucket(db)
 
-# Koleksiyonlar
 user_collection = db.users
 access_token_collection = db.access_tokens
 refresh_token_collection = db.refresh_tokens
 report_collection = db.lesion_reports
 
-# Kullanıcı e-posta ile aranır
 async def get_user_by_email(email: str) -> Optional[dict]:
     user_data = await user_collection.find_one({"email": email})
     if user_data:
@@ -30,7 +25,6 @@ async def get_user_by_email(email: str) -> Optional[dict]:
         return user_data
     return None
 
-# Yeni kullanıcı kaydı yapılır
 async def create_user(user_data: dict) -> str:
     result = await user_collection.insert_one(user_data)
     return str(result.inserted_id)

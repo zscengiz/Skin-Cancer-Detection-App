@@ -12,7 +12,8 @@ import '../screens/scan/detection_result_screen.dart';
 import '../screens/reports/reports_screen.dart';
 import '../screens/scan/camera_screen.dart';
 import '../screens/scan/gallery_picker_screen.dart';
-import '../screens/profile/profile_screen.dart'; // ✅ Add import
+import '../screens/profile/profile_screen.dart';
+import '../screens/settings/settings_screen.dart';
 
 final GoRouter router = GoRouter(
   initialLocation: '/',
@@ -68,8 +69,12 @@ final GoRouter router = GoRouter(
       builder: (context, state) => const ReportsScreen(),
     ),
     GoRoute(
-      path: '/profile', // ✅ Profile route added
+      path: '/profile',
       builder: (context, state) => const ProfileScreen(),
+    ),
+    GoRoute(
+      path: '/settings-screen',
+      builder: (context, state) => const SettingsScreen(),
     ),
   ],
 );

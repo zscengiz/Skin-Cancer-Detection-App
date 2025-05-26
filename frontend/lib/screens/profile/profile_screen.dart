@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:frontend/services/api_service.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:go_router/go_router.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,129 +16,275 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String name = '';
   String surname = '';
   String email = '';
-  final _formKey = GlobalKey<FormState>();
-  final _oldPasswordController = TextEditingController();
-  final _newPasswordController = TextEditingController();
-  bool _isLoading = false;
+
+  bool isEditingName = false;
+  bool isEditingSurname = false;
+  bool isEditingEmail = false;
+
+  TextEditingController nameController = TextEditingController();
+  TextEditingController surnameController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadUserInfo();
+    _loadUserFromToken();
   }
 
-  Future<void> _loadUserInfo() async {
+  Future<void> _loadUserFromToken() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      name = prefs.getString('user_name') ?? '';
-      surname = prefs.getString('user_surname') ?? '';
-      email = prefs.getString('user_email') ?? '';
-    });
-  }
-
-  Future<void> _changePassword() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-    try {
-      await ApiService.changePassword(
-        oldPassword: _oldPasswordController.text,
-        newPassword: _newPasswordController.text,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password changed successfully')),
-      );
-      _oldPasswordController.clear();
-      _newPasswordController.clear();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: \$e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
+    final token = prefs.getString('access_token');
+    if (token != null && !JwtDecoder.isExpired(token)) {
+      final decoded = JwtDecoder.decode(token);
+      setState(() {
+        name = decoded['name'] ?? '';
+        surname = decoded['surname'] ?? '';
+        email = decoded['sub'] ?? '';
+        nameController.text = name;
+        surnameController.text = surname;
+        emailController.text = email;
+      });
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Profile'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
+  Future<void> _updateProfileField(
+      String updatedName, String updatedSurname, String updatedEmail) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+
+    final response = await http.post(
+      Uri.parse('http://localhost:8000/api/auth/update-profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+      body: jsonEncode({
+        'name': updatedName,
+        'surname': updatedSurname,
+        'email': updatedEmail,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body)['data'];
+      await prefs.setString('access_token', data['access_token']);
+      await prefs.setString('refresh_token', data['refresh_token']);
+      _loadUserFromToken();
+
+      setState(() {
+        isEditingName = false;
+        isEditingSurname = false;
+        isEditingEmail = false;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error updating profile')),
+      );
+    }
+  }
+
+  Widget _buildEditableField({
+    required String title,
+    required String value,
+    required bool isEditing,
+    required TextEditingController controller,
+    required VoidCallback onChange,
+    required VoidCallback onCancel,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : const Color(0xFFFFF3CD),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("User Information",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            _buildReadOnlyField('Name', name),
-            _buildReadOnlyField('Surname', surname),
-            _buildReadOnlyField('Email', email),
-            const SizedBox(height: 30),
-            const Text("Change Password",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _oldPasswordController,
-                    obscureText: true,
-                    decoration:
-                        const InputDecoration(labelText: 'Old Password'),
-                    validator: (val) => val == null || val.length < 6
-                        ? 'Enter valid current password'
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _newPasswordController,
-                    obscureText: true,
-                    decoration:
-                        const InputDecoration(labelText: 'New Password'),
-                    validator: (val) => val == null || val.length < 6
-                        ? 'New password must be at least 6 characters'
-                        : null,
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _changePassword,
-                      child: _isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text('Update Password'),
+      child: Row(
+        children: [
+          Expanded(
+            child: isEditing
+                ? TextField(
+                    controller: controller,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
                     ),
+                    decoration: InputDecoration(
+                      labelText: title,
+                      labelStyle: const TextStyle(color: Colors.grey),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.grey),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color:
+                              isDark ? Colors.white : const Color(0xFF333333),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )
-          ],
-        ),
+          ),
+          const SizedBox(width: 10),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert,
+                color: isDark ? Colors.white70 : Colors.black54),
+            onSelected: (String choice) {
+              if (choice == 'Change') {
+                onChange();
+              } else if (choice == 'Cancel') {
+                onCancel();
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              if (!isEditing)
+                const PopupMenuItem<String>(
+                  value: 'Change',
+                  child: Text('Change'),
+                ),
+              if (isEditing)
+                const PopupMenuItem<String>(
+                  value: 'Cancel',
+                  child: Text('Cancel'),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildReadOnlyField(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TextFormField(
-        readOnly: true,
-        initialValue: value,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
+  Future<bool> _onWillPop() async {
+    context.go('/home');
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: isDark ? Colors.black : const Color(0xFFF0F6FF),
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: isDark ? Colors.black : const Color(0xFFF0F6FF),
+          elevation: 0,
+          title: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.home),
+                color: isDark ? Colors.white : const Color(0xFF4991FF),
+                onPressed: () => context.go('/home'),
+                tooltip: 'Go to Home',
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Profile',
+                style: TextStyle(
+                  color: isDark ? Colors.white : const Color(0xFF4991FF),
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
+              _buildEditableField(
+                title: "Name",
+                value: name,
+                isEditing: isEditingName,
+                controller: nameController,
+                onChange: () => setState(() => isEditingName = true),
+                onCancel: () => setState(() {
+                  isEditingName = false;
+                  nameController.text = name;
+                }),
+              ),
+              _buildEditableField(
+                title: "Surname",
+                value: surname,
+                isEditing: isEditingSurname,
+                controller: surnameController,
+                onChange: () => setState(() => isEditingSurname = true),
+                onCancel: () => setState(() {
+                  isEditingSurname = false;
+                  surnameController.text = surname;
+                }),
+              ),
+              _buildEditableField(
+                title: "Email",
+                value: email,
+                isEditing: isEditingEmail,
+                controller: emailController,
+                onChange: () => setState(() => isEditingEmail = true),
+                onCancel: () => setState(() {
+                  isEditingEmail = false;
+                  emailController.text = email;
+                }),
+              ),
+              const SizedBox(height: 36),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    _updateProfileField(
+                      nameController.text,
+                      surnameController.text,
+                      emailController.text,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        isDark ? Colors.white : const Color(0xFF4991FF),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 40, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Text(
+                    'Save Changes',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: isDark ? Colors.black : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 50),
+            ],
+          ),
         ),
       ),
     );

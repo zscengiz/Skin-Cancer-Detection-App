@@ -4,6 +4,8 @@ from internal.database.database import get_user_by_email, user_collection, acces
 from internal.models.user import UserSignUp, UserLogin, ForgotPasswordRequest
 from internal.models.access_token import AccessToken
 from internal.models.refresh_token import RefreshToken
+from internal.models.change_password_request import ChangePasswordRequest
+from internal.models.update_profile_request import UpdateProfileRequest
 from internal.email.verification_code import generate_code, save_verification_code, verify_code
 from internal.email.mailer import send_email
 from internal.tokens.tokens import create_access_token, create_refresh_token
@@ -182,23 +184,82 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
         }
     )
 
+@router.post("/update-profile")
+async def update_profile(
+    data: UpdateProfileRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    existing_email_user = await get_user_by_email(data.email)
+    if existing_email_user and existing_email_user["id"] != current_user["user_id"]:
+        raise HTTPException(status_code=400, detail="Email is already in use")
+
+    await user_collection.update_one(
+        {"id": current_user["user_id"]},
+        {"$set": {
+            "name": data.name,
+            "surname": data.surname,
+            "email": data.email
+        }}
+    )
+
+    new_access_token = create_access_token({
+        "sub": data.email,
+        "user_id": current_user["user_id"],
+        "name": data.name
+    })
+
+    new_refresh_token = create_refresh_token({
+        "sub": data.email,
+        "user_id": current_user["user_id"]
+    })
+
+    access_token_obj = AccessToken(
+        token=new_access_token,
+        user_id=current_user["user_id"],
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=conf["access_token_expire_minutes"]),
+        is_active=True
+    )
+    refresh_token_obj = RefreshToken(
+        token=new_refresh_token,
+        user_id=current_user["user_id"],
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=conf["refresh_token_expire_days"]),
+        is_active=True
+    )
+
+    await access_token_collection.insert_one(access_token_obj.dict())
+    await refresh_token_collection.insert_one(refresh_token_obj.dict())
+
+    return success_response(
+        message="Profile updated successfully",
+        data={
+            "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
+            "token_type": "bearer"
+        }
+    )
+
+
 @router.post("/change-password")
 async def change_password(
-    old_password: str = Body(...),
-    new_password: str = Body(...),
+    data: ChangePasswordRequest,
     current_user: dict = Depends(get_current_user)
 ):
     user = await user_collection.find_one({"id": current_user["user_id"]})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if not bcrypt.checkpw(old_password.encode('utf-8'), user["hashed_password"].encode('utf-8')):
+    if not bcrypt.checkpw(data.old_password.encode(), user["hashed_password"].encode()):
         raise HTTPException(status_code=400, detail="Old password is incorrect")
 
-    hashed_new = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    if data.new_password != data.confirm_new_password:
+        raise HTTPException(status_code=400, detail="New passwords do not match")
+
+    hashed_new_pw = bcrypt.hashpw(data.new_password.encode(), bcrypt.gensalt()).decode()
     await user_collection.update_one(
         {"id": current_user["user_id"]},
-        {"$set": {"hashed_password": hashed_new}}
+        {"$set": {"hashed_password": hashed_new_pw}}
     )
 
     return success_response(message="Password changed successfully")

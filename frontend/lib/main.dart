@@ -23,8 +23,8 @@ class SkinCancerApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             routerConfig: router,
             themeMode: themeProvider.themeMode,
-            theme: ThemeData.light(),
-            darkTheme: ThemeData.dark(),
+            theme: ThemeProvider.lightTheme,
+            darkTheme: ThemeProvider.darkTheme,
           );
         },
       ),

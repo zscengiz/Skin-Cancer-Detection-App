@@ -45,17 +45,35 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? Colors.black : const Color(0xFFF0F6FF);
+    final cardColor = isDark ? Colors.grey[850] : const Color(0xFFFFF3CD);
+    final textColor = isDark ? Colors.white : const Color(0xFF4991FF);
+
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.blue.shade800,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/home'),
-        ),
-        title: const Text(
-          "Select Scan Area",
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        automaticallyImplyLeading: false,
+        backgroundColor: bgColor,
+        elevation: 0,
+        title: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.home),
+              color: textColor,
+              onPressed: () => context.go('/home'),
+              tooltip: 'Go to Home',
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Select Scan Area',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
       body: Stack(
@@ -65,9 +83,13 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Tap on a body part",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.blueAccent,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Expanded(
@@ -82,7 +104,7 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
                         borderRadius: BorderRadius.circular(16),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: cardColor,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
@@ -100,8 +122,11 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
                               const SizedBox(height: 10),
                               Text(
                                 part['name'],
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : Colors.black,
+                                ),
                               ),
                             ],
                           ),
@@ -124,7 +149,7 @@ class _ScanSelectScreenState extends State<ScanSelectScreen> {
                       const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                   margin: const EdgeInsets.symmetric(horizontal: 32),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? Colors.grey[900] : Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: const [
                       BoxShadow(
