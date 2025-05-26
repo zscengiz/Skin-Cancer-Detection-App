@@ -185,13 +185,14 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
         }
     )
 
+
 @router.post("/update-profile")
 async def update_profile(
     data: UpdateProfileRequest,
     current_user: dict = Depends(get_current_user)
 ):
-    existing_email_user = await get_user_by_email(data.email)
-    if existing_email_user and existing_email_user["id"] != current_user["user_id"]:
+    existing_user = await get_user_by_email(data.email)
+    if existing_user and existing_user["id"] != current_user["user_id"]:
         raise HTTPException(status_code=400, detail="Email is already in use")
 
     await user_collection.update_one(
@@ -208,29 +209,26 @@ async def update_profile(
         "user_id": current_user["user_id"],
         "name": data.name
     })
-
     new_refresh_token = create_refresh_token({
         "sub": data.email,
         "user_id": current_user["user_id"]
     })
 
-    access_token_obj = AccessToken(
+    await access_token_collection.insert_one(AccessToken(
         token=new_access_token,
         user_id=current_user["user_id"],
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.now(timezone.utc) + timedelta(minutes=conf["access_token_expire_minutes"]),
         is_active=True
-    )
-    refresh_token_obj = RefreshToken(
+    ).dict())
+
+    await refresh_token_collection.insert_one(RefreshToken(
         token=new_refresh_token,
         user_id=current_user["user_id"],
         created_at=datetime.now(timezone.utc),
         expires_at=datetime.now(timezone.utc) + timedelta(days=conf["refresh_token_expire_days"]),
         is_active=True
-    )
-
-    await access_token_collection.insert_one(access_token_obj.dict())
-    await refresh_token_collection.insert_one(refresh_token_obj.dict())
+    ).dict())
 
     return success_response(
         message="Profile updated successfully",
@@ -240,6 +238,7 @@ async def update_profile(
             "token_type": "bearer"
         }
     )
+
 
 
 def is_valid_password(password: str) -> bool:

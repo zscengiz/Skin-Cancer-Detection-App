@@ -76,6 +76,37 @@ class ApiService {
     }
   }
 
+  static Future<void> updateProfile({
+    required String name,
+    required String surname,
+    required String email,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token') ?? '';
+
+    final response = await http.post(
+      Uri.parse('${ApiEndpoints.baseUrl}/api/auth/update-profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'name': name,
+        'surname': surname,
+        'email': email,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body)['data'];
+      await prefs.setString('access_token', data['access_token']);
+      await prefs.setString('refresh_token', data['refresh_token']);
+    } else {
+      final detail = jsonDecode(response.body)['detail'] ?? 'Unknown error';
+      throw Exception('Update failed: $detail');
+    }
+  }
+
   static Future<void> changePassword({
     required String oldPassword,
     required String newPassword,

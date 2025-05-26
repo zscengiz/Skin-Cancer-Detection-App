@@ -158,10 +158,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            trailing: Switch(
-              value: themeProvider.isDarkMode,
-              activeColor: lightTextColor,
-              onChanged: (val) => themeProvider.toggleTheme(val),
+            trailing: GestureDetector(
+              onTap: () => themeProvider.toggleTheme(!themeProvider.isDarkMode),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 60,
+                height: 30,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(30),
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[800]
+                      : Colors.grey[300],
+                ),
+                child: AnimatedAlign(
+                  duration: const Duration(milliseconds: 300),
+                  alignment: themeProvider.isDarkMode
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
+                    child: Icon(
+                      themeProvider.isDarkMode
+                          ? Icons.nightlight_round
+                          : Icons.wb_sunny_rounded,
+                      size: 16,
+                      color: themeProvider.isDarkMode
+                          ? Colors.black
+                          : Colors.orangeAccent,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 24),

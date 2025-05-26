@@ -47,6 +47,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  String? _validateName(String value) {
+    if (value.trim().isEmpty) return 'Name cannot be empty';
+    if (value.length < 3) return 'Name must be at least 3 characters';
+    if (!RegExp(r"^[a-zA-ZğüşöçıİĞÜŞÖÇ\s]+$").hasMatch(value)) {
+      return 'Name must contain only letters';
+    }
+    return null;
+  }
+
+  String? _validateSurname(String value) {
+    if (value.trim().isEmpty) return 'Surname cannot be empty';
+    if (value.length < 3) return 'Surname must be at least 3 characters';
+    if (!RegExp(r"^[a-zA-ZğüşöçıİĞÜŞÖÇ\s]+$").hasMatch(value)) {
+      return 'Surname must contain only letters';
+    }
+    return null;
+  }
+
+  String? _validateEmail(String value) {
+    if (value.trim().isEmpty) return 'Email cannot be empty';
+    if (!RegExp(r"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(value)) {
+      return 'Invalid email format';
+    }
+    return null;
+  }
+
   Future<void> _updateProfileField(
       String updatedName, String updatedSurname, String updatedEmail) async {
     final prefs = await SharedPreferences.getInstance();
@@ -69,16 +95,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final data = jsonDecode(response.body)['data'];
       await prefs.setString('access_token', data['access_token']);
       await prefs.setString('refresh_token', data['refresh_token']);
-      _loadUserFromToken();
+      await _loadUserFromToken();
 
       setState(() {
         isEditingName = false;
         isEditingSurname = false;
         isEditingEmail = false;
       });
-    } else {
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error updating profile')),
+        SnackBar(
+          content: const Text('Profile updated successfully'),
+          backgroundColor: const Color(0xFFD4EDDA),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        ),
+      );
+    } else {
+      final error = jsonDecode(response.body)['detail'] ?? 'An error occurred';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Update error: $error')),
       );
     }
   }
@@ -155,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icon(Icons.more_vert,
                 color: isDark ? Colors.white70 : Colors.black54),
             onSelected: (String choice) {
-              if (choice == 'Change') {
+              if (choice == 'Edit') {
                 onChange();
               } else if (choice == 'Cancel') {
                 onCancel();
@@ -164,8 +203,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               if (!isEditing)
                 const PopupMenuItem<String>(
-                  value: 'Change',
-                  child: Text('Change'),
+                  value: 'Edit',
+                  child: Text('Edit'),
                 ),
               if (isEditing)
                 const PopupMenuItem<String>(
@@ -202,7 +241,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: const Icon(Icons.home),
                 color: isDark ? Colors.white : const Color(0xFF4991FF),
                 onPressed: () => context.go('/home'),
-                tooltip: 'Go to Home',
+                tooltip: 'Home',
               ),
               const SizedBox(width: 8),
               Text(
@@ -221,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const SizedBox(height: 24),
               _buildEditableField(
-                title: "Name",
+                title: "First Name",
                 value: name,
                 isEditing: isEditingName,
                 controller: nameController,
@@ -232,7 +271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }),
               ),
               _buildEditableField(
-                title: "Surname",
+                title: "Last Name",
                 value: surname,
                 isEditing: isEditingSurname,
                 controller: surnameController,
@@ -257,10 +296,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
+                    final nameError = _validateName(nameController.text.trim());
+                    final surnameError =
+                        _validateSurname(surnameController.text.trim());
+                    final emailError =
+                        _validateEmail(emailController.text.trim());
+
+                    if (nameError != null ||
+                        surnameError != null ||
+                        emailError != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content:
+                              Text(nameError ?? surnameError ?? emailError!),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
                     _updateProfileField(
-                      nameController.text,
-                      surnameController.text,
-                      emailController.text,
+                      nameController.text.trim(),
+                      surnameController.text.trim(),
+                      emailController.text.trim(),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -274,7 +332,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     elevation: 2,
                   ),
                   child: Text(
-                    'Save Changes',
+                    'Save',
                     style: TextStyle(
                       fontSize: 16,
                       color: isDark ? Colors.black : Colors.white,

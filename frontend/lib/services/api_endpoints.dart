@@ -10,6 +10,7 @@ class ApiEndpoints {
       '$baseUrl/api/auth/request-password-reset';
   static final String refreshToken = '$baseUrl/api/auth/refresh-token';
   static final String changePassword = '$baseUrl/api/auth/change-password';
+  static final String updateProfile = '$baseUrl/api/auth/update-profile';
 
   static final String uploadReport = '$baseUrl/api/reports/upload';
   static final String getMyReports = '$baseUrl/api/reports/me';
