@@ -15,6 +15,7 @@ from config.config import conf
 import bcrypt
 import uuid
 from datetime import datetime, timedelta, timezone
+import re
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
@@ -241,6 +242,17 @@ async def update_profile(
     )
 
 
+def is_valid_password(password: str) -> bool:
+    return all([
+        len(password) >= 8,
+        re.search(r'[A-Z]', password),
+        re.search(r'[a-z]', password),
+        re.search(r'\d', password),
+        re.search(r'[@$!%*?&.]', password),
+    ])
+
+
+
 @router.post("/change-password")
 async def change_password(
     data: ChangePasswordRequest,
@@ -255,6 +267,15 @@ async def change_password(
 
     if data.new_password != data.confirm_new_password:
         raise HTTPException(status_code=400, detail="New passwords do not match")
+    
+    if bcrypt.checkpw(data.new_password.encode(), user["hashed_password"].encode()):
+        raise HTTPException(status_code=400, detail="New password must be different from old password")
+
+    if not is_valid_password(data.new_password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters long, include an uppercase, lowercase, number and special character"
+        )
 
     hashed_new_pw = bcrypt.hashpw(data.new_password.encode(), bcrypt.gensalt()).decode()
     await user_collection.update_one(

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from routes.detection import router as detection_router
 from routes import report_controller
-
+from routes import auth_controller 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request
@@ -32,7 +32,7 @@ app.add_middleware(
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    print("🚨 Validation Error:")
+    print("Validation Error:")
     print("Route:", request.url)
     print("Body:", await request.body())
     print("Errors:", exc.errors())
@@ -49,6 +49,7 @@ app.include_router(auth_router)
 app.include_router(detection_router)
 app.include_router(report_controller.router)
 
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Skin Cancer Detection App!"}
@@ -57,7 +58,7 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    print("🚨 Validation Error:")
+    print("Validation Error:")
     print("Route:", request.url)
     print("Body:", await request.body())
     print("Errors:", exc.errors())

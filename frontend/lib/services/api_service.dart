@@ -79,6 +79,7 @@ class ApiService {
   static Future<void> changePassword({
     required String oldPassword,
     required String newPassword,
+    required String confirmNewPassword,
   }) async {
     final token = await getAccessToken();
     final response = await http.post(
@@ -90,6 +91,7 @@ class ApiService {
       body: jsonEncode({
         'old_password': oldPassword,
         'new_password': newPassword,
+        'confirm_new_password': confirmNewPassword,
       }),
     );
 

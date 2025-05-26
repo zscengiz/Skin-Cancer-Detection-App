@@ -31,16 +31,42 @@ class ThemeProvider extends ChangeNotifier {
       thumbColor: MaterialStatePropertyAll(Colors.white),
       trackColor: MaterialStatePropertyAll(Colors.white),
     ),
+    cardColor: Colors.grey[850],
+    dialogBackgroundColor: Colors.grey[900],
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white10,
+        foregroundColor: Colors.white,
+      ),
+    ),
   );
 
   static final lightTheme = ThemeData(
     brightness: Brightness.light,
-    scaffoldBackgroundColor: Colors.white,
-    primaryColor: Colors.blue,
+    scaffoldBackgroundColor: const Color(0xFFF0F6FF),
+    primaryColor: const Color(0xFF4991FF),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black,
+      backgroundColor: Color(0xFFF0F6FF),
+      foregroundColor: Color(0xFF4991FF),
       elevation: 0,
+    ),
+    textTheme: const TextTheme(
+      bodyMedium: TextStyle(color: Colors.black),
+      bodyLarge: TextStyle(color: Colors.black),
+      titleLarge: TextStyle(color: Colors.black),
+    ),
+    iconTheme: const IconThemeData(color: Color(0xFF4991FF)),
+    switchTheme: SwitchThemeData(
+      thumbColor: MaterialStatePropertyAll(Color(0xFF4991FF)),
+      trackColor: MaterialStatePropertyAll(Color(0xFFBBD5FF)),
+    ),
+    cardColor: const Color(0xFFFFF3CD),
+    dialogBackgroundColor: Colors.white,
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF4991FF),
+        foregroundColor: Colors.white,
+      ),
     ),
   );
 }
