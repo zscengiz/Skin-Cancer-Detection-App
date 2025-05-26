@@ -54,10 +54,12 @@ async def login(user: UserLogin):
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
     access_token = create_access_token({
-        "sub": user.email,
-        "user_id": existing_user["id"],
-        "name": existing_user["name"]
-    })
+    "sub": user.email,
+    "user_id": existing_user["id"],
+    "name": existing_user["name"],
+    "surname": existing_user["surname"]
+})
+
 
     refresh_token = create_refresh_token({
         "sub": user.email,
@@ -205,10 +207,12 @@ async def update_profile(
     )
 
     new_access_token = create_access_token({
-        "sub": data.email,
-        "user_id": current_user["user_id"],
-        "name": data.name
-    })
+    "sub": data.email,
+    "user_id": current_user["user_id"],
+    "name": data.name,
+    "surname": data.surname
+})
+
     new_refresh_token = create_refresh_token({
         "sub": data.email,
         "user_id": current_user["user_id"]
